@@ -2,20 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+body {
+  /* color: var(--foreground);
+  background: var(--background); */
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 260 30% 98%;           /* White */
+    --foreground: 270 5% 15%;          /* Dark purple-gray */
+    --card: 0 0% 100%;                 /* White */
+    --card-foreground: 270 5% 15%;     /* Dark purple-gray */
+    --popover: 0 0% 100%;              /* White */
+    --popover-foreground: 270 5% 15%;  /* Dark purple-gray */
+    --primary: 270 70% 50%;           /* Vibrant purple */
+    --primary-foreground: 0 0% 98%;    /* Near white */
+    --secondary: 260 30% 90%;          /* Light purple-gray */
+    --secondary-foreground: 270 70% 40%; /* Darker purple */
+    --muted: 260 20% 95%;             /* Very light purple-gray */
+    --muted-foreground: 270 15% 45%;   /* Mid purple-gray */
+    --accent: 260 30% 90%;            /* Light purple-gray */
+    --accent-foreground: 270 70% 40%;  /* Darker purple */
+    --destructive: 0 84.2% 60.2%;     /* Red kept as is */
+    --destructive-foreground: 0 0% 98%;
+    --border: 260 20% 85%;            /* Light purple border */
+    --input: 260 20% 85%;
+    --ring: 270 70% 50%;              /* Matches primary purple */
+    --chart-1: 270 70% 50%;           /* Purple */
+    --chart-2: 260 60% 60%;           /* Lighter purple */
+    --chart-3: 280 65% 45%;           /* Deeper purple */
+    --chart-4: 275 70% 55%;           /* Medium purple */
+    --chart-5: 265 75% 65%;           /* Light purple */
+    --radius: 0.5rem;
+    --sidebar-background: 260 30% 98%;      /* Very light purple */
+    --sidebar-foreground: 270 70% 40%;      /* Darker purple */
+    --sidebar-primary: 270 70% 50%;         /* Main purple */
+    --sidebar-primary-foreground: 0 0% 98%; /* Near white */
+    --sidebar-accent: 260 30% 90%;          /* Light purple-gray */
+    --sidebar-accent-foreground: 270 70% 40%;
+    --sidebar-border: 260 20% 85%;
+    --sidebar-ring: 270 70% 50%;           /* Matches primary */
+  }
+  .dark {
+    --background: 270 20% 8%;          /* Dark purple-black */
+    --foreground: 260 20% 95%;         /* Light purple-gray */
+    --card: 270 20% 8%;                /* Dark purple-black */
+    --card-foreground: 260 20% 95%;
+    --popover: 270 20% 8%;
+    --popover-foreground: 260 20% 95%;
+    --primary: 270 70% 60%;           /* Lighter purple for dark mode */
+    --primary-foreground: 270 10% 10%; /* Dark purple */
+    --secondary: 270 30% 20%;         /* Dark purple-gray */
+    --secondary-foreground: 260 20% 95%;
+    --muted: 270 25% 15%;             /* Darker muted purple */
+    --muted-foreground: 260 15% 60%;   /* Mid purple-gray */
+    --accent: 270 30% 20%;
+    --accent-foreground: 260 20% 95%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 260 20% 95%;
+    --border: 270 25% 25%;            /* Darker purple border */
+    --input: 270 25% 25%;
+    --ring: 270 70% 60%;              /* Matches dark mode primary */
+    --chart-1: 270 70% 60%;           /* Purple */
+    --chart-2: 260 60% 50%;           /* Medium purple */
+    --chart-3: 280 65% 55%;           /* Light purple */
+    --chart-4: 275 70% 65%;           /* Lighter purple */
+    --chart-5: 265 75% 70%;           /* Very light purple */
+    --sidebar-background: 270 25% 12%;      /* Dark purple */
+    --sidebar-foreground: 260 20% 95%;      /* Light purple-gray */
+    --sidebar-primary: 270 70% 60%;         /* Main purple */
+    --sidebar-primary-foreground: 270 10% 10%;
+    --sidebar-accent: 270 30% 20%;
+    --sidebar-accent-foreground: 260 20% 95%;
+    --sidebar-border: 270 25% 25%;
+    --sidebar-ring: 270 70% 60%;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
