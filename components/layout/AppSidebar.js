@@ -1,6 +1,5 @@
 "use client"
 
-import * as React from "react"
 import {
   AudioWaveform,
   BookOpen,
@@ -26,17 +25,16 @@ import { TeamSwitcher } from "./TeamSwitcher"
 import { NavMain } from "./NavMain"
 import { NavProjects } from "./NavProjects"
 import { NavUser } from "./NavUser"
+import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
+import maraiAPI from "@/apis/maraiAPI"
+import { toast } from "react-toastify"
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   products: [
     {
-      name: "MarAi",
+      name: "MarAI",
       logo: BrainIcon,
       link: "/",
     },
@@ -148,6 +146,34 @@ const data = {
 }
 
 export function AppSidebar({ ...props }) {
+  const pathname = usePathname()
+
+  const [userData, setUserData] = useState({})
+
+  async function getUserData() {
+    try {
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      const response = await maraiAPI.getCheckAuth({}, {})
+
+      const body = await response.json()
+
+      if (response.status !== 200) {
+        toast.error(`Gagal memuat data user: ${JSON.stringify(body)}`)
+        return
+      }
+
+      setUserData({...body.data, logged_in: true})
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+    }
+  }
+
+  useEffect(() => {
+    getUserData()
+  }, [pathname])
+
   return (
     <Sidebar
       collapsible="icon"
@@ -162,7 +188,7 @@ export function AppSidebar({ ...props }) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
