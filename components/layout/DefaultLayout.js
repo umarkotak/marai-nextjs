@@ -22,7 +22,7 @@ export default function DefaultLayout({ children }) {
       <AppSidebar />
 
       <main className="w-full">
-        <header className="sticky top-0 flex justify-between h-[57px] px-2 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-[41px] z-10 border-b border-primary">
+        <header className="sticky top-0 flex justify-between h-[57px] px-2 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-[41px] z-10 border-b border-primary bg-background">
           <div className="flex items-center gap-2">
             <SidebarTrigger />
             <Breadcrumb>

@@ -65,6 +65,32 @@ class MaraiAPI {
     }
   }
 
+  async requestForm(method, path, headers = {}, params = {}, body = null) {
+    const url = `${this.getBaseUrl()}${path}${method === 'GET' && params ? `?${new URLSearchParams(params)}` : ''}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+
+    const formHeaders = new Headers();
+    formHeaders.append("Authorization", `Bearer ${this.getAuthToken()}`);
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: formHeaders,
+        body: body,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      return response
+
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async get(path, headers = {}, params = {}) {
     return this.request('GET', path, headers, params);
   }
@@ -90,12 +116,20 @@ class MaraiAPI {
   }
 
   // API Endpoints
-  async postSignIn(headers = {}, params = {}) {
-    return this.post('/marai/api/user/sign_in', headers, params);
+  async postSignIn(headers = {}, body = {}) {
+    return this.post('/marai/api/user/sign_in', headers, body);
   }
 
   async getCheckAuth(headers = {}, params = {}) {
     return this.get('/marai/api/user/check_auth', headers, params);
+  }
+
+  async postCreateAutoDubbingTask(headers = {}, body = {}) {
+    return this.requestForm('POST', '/marai/api/tasks/video/auto_dubbing', headers, {}, body);
+  }
+
+  async getTaskList(headers = {}, params = {}) {
+    return this.get('/marai/api/tasks', headers, params);
   }
 
   async getVideoDetail(headers = {}, { youtube_video_id, ...params } = {}) {
