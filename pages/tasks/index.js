@@ -3,16 +3,21 @@
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
-  RadioGroup,
-  RadioGroupItem,
-} from "@/components/ui/radio-group"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { useEffect, useState } from "react"
@@ -21,22 +26,13 @@ import { LoadingSpinner } from "@/components/ui/icon"
 import { useRouter } from "next/router"
 import { toast } from "react-toastify"
 import maraiAPI from "@/apis/maraiAPI"
-import { MoreHorizontal } from "lucide-react"
+import { ImageIcon, MoreHorizontal } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Checkbox } from "@/components/ui/checkbox"
+import { FormatDateConcrete } from "@/lib/datetimeUtils"
+import Link from "next/link"
 
 export default function TaskList() {
-  // {
-  //   "id": 4,
-  //   "created_at": "2025-03-10T08:55:55.652144+07:00",
-  //   "updated_at": "2025-03-10T10:35:44.00934+07:00",
-  //   "user_id": 1,
-  //   "slug": "task-spacex-1741571755",
-  //   "name": "spacex",
-  //   "task_type": "auto_dubbing",
-  //   "status": "audio_transcript_translated",
-  //   "publish": false,
-  //   "thumbnail_url": "",
-  //   "youtube_video_url": ""
-  // }
   const [taskList, setTaskList] = useState([])
 
   async function getTaskList() {
@@ -64,44 +60,78 @@ export default function TaskList() {
   }, [])
 
   return (
-    <div className="flex flex-row justify-center w-full">
-      <div className="flex flex-col gap-4 w-full max-w-xl">
-        <Card className="p-4">
-          Task - List
+    <div className="flex flex-row justify-start w-full">
+      <div className="flex flex-col gap-2 w-full">
+        <Card className="p-4 flex justify-between items-center">
+          <div>
+            Task List
+          </div>
+          <div>
+            <Link href="/tasks/create"><Button size="sm">+ Create</Button></Link>
+          </div>
         </Card>
 
-        {taskList.map((oneTask) => (
-          <Card key={`task-${oneTask.id}`}>
-            <CardHeader className="p-4 pb-">
-              <div className="flex justify-between">
-                <div className="text-sm flex">
-                  {oneTask.slug}
-                </div>
-                <div className="text-sm flex">
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="flex flex-row gap-4 items-center justify-between">
-                <img src="https://placehold.co/400" className="w-24 h-24 rounded" />
-                <div className="w-full flex flex-col gap-0.5">
-                  <div className="text-sm flex">
-                    <span className="w-16">name</span>: {oneTask.name}
-                  </div>
-                  <div className="text-sm flex">
-                    <span className="w-16">status</span>: {oneTask.status}
-                  </div>
-                </div>
-                <div>
-                  <Button variant="outline" size="icon">
-                    <MoreHorizontal />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <Checkbox id={`task-check-all`} />
+              </TableHead>
+              <TableHead>Thumbnail</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Task Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {taskList.map((oneTask) => (
+              <TaskRow oneTask={oneTask} />
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
+  )
+}
+
+function TaskRow({oneTask}) {
+  return(
+    <TableRow key={`task-${oneTask.id}`}>
+      <TableCell>
+        <Checkbox id={`task-${oneTask.id}-check`} />
+      </TableCell>
+      <TableCell>
+        <Avatar className="h-10 w-20 rounded">
+          <AvatarImage src={oneTask.thumbnail_url} alt="thumbnail" />
+          <AvatarFallback className="rounded">
+            <ImageIcon />
+          </AvatarFallback>
+        </Avatar>
+      </TableCell>
+      <TableCell>{FormatDateConcrete(oneTask.created_at)}</TableCell>
+      <TableCell className="flex flex-col">
+        <span className="font-semibold">{oneTask.name}</span>
+        <span className="text-[10px]">{oneTask.slug}</span>
+      </TableCell>
+      <TableCell>{oneTask.task_type}</TableCell>
+      <TableCell>{FormatDateConcrete(oneTask.updated_at)}</TableCell>
+      <TableCell>{oneTask.status}</TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Button size="icon_7">
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuItem>Delete</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   )
 }

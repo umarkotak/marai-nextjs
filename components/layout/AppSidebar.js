@@ -46,22 +46,22 @@ const data = {
       icon: SquareTerminal,
       isActive: true,
       items: [
-        { title: "Create New", url: "/tasks/create", },
+        { title: "Create", url: "/tasks/create", },
         { title: "List", url: "/tasks", },
       ],
     },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      isActive: true,
-      items: [
-        { title: "General", url: "#", },
-        { title: "Team", url: "#", },
-        { title: "Billing", url: "#", },
-        { title: "Limits", url: "#", },
-      ],
-    },
+    // {
+    //   title: "Settings",
+    //   url: "#",
+    //   icon: Settings2,
+    //   isActive: true,
+    //   items: [
+    //     { title: "General", url: "#", },
+    //     { title: "Team", url: "#", },
+    //     { title: "Billing", url: "#", },
+    //     { title: "Limits", url: "#", },
+    //   ],
+    // },
   ],
   projects: [
     {
