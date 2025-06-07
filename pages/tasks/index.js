@@ -18,6 +18,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { useEffect, useState } from "react"
@@ -26,7 +36,7 @@ import { LoadingSpinner } from "@/components/ui/icon"
 import { useRouter } from "next/router"
 import { toast } from "react-toastify"
 import maraiAPI from "@/apis/maraiAPI"
-import { ImageIcon, MoreHorizontal } from "lucide-react"
+import { ImageIcon, InfoIcon, MoreHorizontal } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormatDateConcrete } from "@/lib/datetimeUtils"
@@ -120,17 +130,38 @@ function TaskRow({oneTask}) {
       <TableCell>{FormatDateConcrete(oneTask.updated_at)}</TableCell>
       <TableCell>{oneTask.status}</TableCell>
       <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button size="icon_7">
-              <MoreHorizontal />
+        <div className="flex gap-1">
+          <Drawer>
+            <DrawerTrigger>
+              <Button size="icon_6">
+              <InfoIcon />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-            <DropdownMenuItem>Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Are you absolutely sure?</DrawerTitle>
+                <DrawerDescription>This action cannot be undone.</DrawerDescription>
+              </DrawerHeader>
+              <DrawerFooter>
+                <Button>Submit</Button>
+                <DrawerClose>
+                  <Button variant="outline">Cancel</Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button size="icon_6">
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuItem>Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </TableCell>
     </TableRow>
   )
