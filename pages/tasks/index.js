@@ -19,15 +19,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { useEffect, useState } from "react"
@@ -41,6 +39,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormatDateConcrete } from "@/lib/datetimeUtils"
 import Link from "next/link"
+import { Progress } from "@/components/ui/progress"
+import LogViewer from "@/components/log_viewer"
 
 export default function TaskList() {
   const [taskList, setTaskList] = useState([])
@@ -93,12 +93,13 @@ export default function TaskList() {
               <TableHead>Type</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Progress</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {taskList.map((oneTask) => (
-              <TaskRow oneTask={oneTask} />
+              <TaskRow oneTask={oneTask} getTaskList={getTaskList} />
             ))}
           </TableBody>
         </Table>
@@ -107,7 +108,95 @@ export default function TaskList() {
   )
 }
 
-function TaskRow({oneTask}) {
+function TaskRow({oneTask, getTaskList}) {
+  const [taskStatus, setTaskStatus] = useState({})
+
+  async function getTaskStatus(oneTask) {
+    try {
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      const response = await maraiAPI.getTaskStatus({}, {
+        slug: oneTask.slug,
+      })
+
+      const body = await response.json()
+
+      if (response.status !== 200) {
+        toast.error(`Gagal memuat status task: ${JSON.stringify(body)}`)
+        return
+      }
+
+      setTaskStatus(body.data)
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+    }
+  }
+
+  useEffect(() => {
+    getTaskStatus(oneTask)
+
+    const intervalId = setInterval(() => {
+      if (oneTask.status === "completed") { return }
+      getTaskStatus(oneTask)
+    }, 5000);
+
+    // Cleanup the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [])
+
+  async function deleteTask() {
+    try {
+      if (!confirm("are you sure want to delete this task? once deleted it cannot be restored again!")) {
+        return
+      }
+
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      const response = await maraiAPI.deleteTask({}, {
+        slug: oneTask.slug,
+      })
+
+      const body = await response.json()
+
+      if (response.status !== 200) {
+        toast.error(`Gagal menghapus task: ${JSON.stringify(body)}`)
+        return
+      }
+
+      toast.success(`Task berhasil dihapus`)
+
+      getTaskList()
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+    }
+  }
+
+  async function processTask() {
+    try {
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      const response = await maraiAPI.postProcessTask({}, {
+        slug: oneTask.slug,
+      })
+
+      const body = await response.json()
+
+      if (response.status !== 200) {
+        toast.error(`Gagal memproses task: ${JSON.stringify(body)}`)
+        return
+      }
+
+      toast.success(`Task sedang diproses kembali`)
+
+      getTaskStatus(oneTask)
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+    }
+  }
+
   return(
     <TableRow key={`task-${oneTask.id}`}>
       <TableCell>
@@ -128,37 +217,93 @@ function TaskRow({oneTask}) {
       </TableCell>
       <TableCell>{oneTask.task_type}</TableCell>
       <TableCell>{FormatDateConcrete(oneTask.updated_at)}</TableCell>
-      <TableCell>{oneTask.status}</TableCell>
+      <TableCell>
+        <div className="flex gap-1 items-center">
+          {taskStatus?.is_running && <LoadingSpinner />}
+          <span>{taskStatus?.is_running ? taskStatus?.task_progress_info?.running_status : taskStatus?.task_progress_info?.status}</span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Progress value={taskStatus?.task_progress_info?.progress_percent * 100} className="w-full" />
+      </TableCell>
       <TableCell>
         <div className="flex gap-1">
-          <Drawer>
-            <DrawerTrigger>
-              <Button size="icon_6">
-              <InfoIcon />
-            </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle>Are you absolutely sure?</DrawerTitle>
-                <DrawerDescription>This action cannot be undone.</DrawerDescription>
-              </DrawerHeader>
-              <DrawerFooter>
-                <Button>Submit</Button>
-                <DrawerClose>
-                  <Button variant="outline">Cancel</Button>
-                </DrawerClose>
-              </DrawerFooter>
-            </DrawerContent>
-          </Drawer>
+          <Sheet>
+            <SheetTrigger><Button size="icon_6"><InfoIcon /></Button></SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>{oneTask.name}</SheetTitle>
+              </SheetHeader>
+              <SheetDescription>
+                <div className="flex flex-col gap-1 max-h-screen overflow-auto">
+                  <div>
+                    <label className="text-xs font-bold">slug:</label>
+                    <div className="text-sm">{oneTask.slug}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold">task type:</label>
+                    <div className="text-sm">{oneTask.task_type}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold">status:</label>
+                    <div className="text-sm">[{taskStatus?.task_progress_info?.status_index}/{taskStatus?.task_progress_info?.final_index}] - {oneTask.status}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold">youtube video url:</label>
+                    <div className="text-sm text-primary">
+                      <a href={oneTask.youtube_video_url} target="_blank">{oneTask.youtube_video_url}</a>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold">progress:</label>
+                    <div className="flex flex-col gap-1">
+                      {taskStatus?.task_progress_info?.progresses.map((prog) => (
+                        <div className="flex gap-1 items-center" key={`side-drawer-prog-${oneTask.slug}-${prog.status}`}>
+                          <Checkbox id={`task-${oneTask.id}-check`} checked={prog.done} disabled />
+                          {prog.status}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold">logs:</label>
+                    <LogViewer
+                      slug={oneTask.slug}
+                    />
+                  </div>
+                  {/* <div>
+                    <label className="text-xs font-bold">metadata:</label>
+                    <div className="text-xs bg-accent">
+                      <pre>
+                        {JSON.stringify(oneTask?.metadata, " ", "  ")}
+                      </pre>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold">metadata:</label>
+                    <div className="text-xs bg-accent">
+                      <pre>
+                        {JSON.stringify(taskStatus, " ", "  ")}
+                      </pre>
+                    </div>
+                  </div> */}
+                  <hr className="mt-8 mb-24" />
+                </div>
+              </SheetDescription>
+            </SheetContent>
+          </Sheet>
           <DropdownMenu>
             <DropdownMenuTrigger>
-              <Button size="icon_6">
-                <MoreHorizontal />
-              </Button>
+              <Button size="icon_6"><MoreHorizontal /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
+              {taskStatus?.task_progress_info?.status !== "completed" && taskStatus?.is_running === false &&
+                <DropdownMenuItem onClick={() => processTask()}>Continue Process</DropdownMenuItem>
+              }
               <DropdownMenuItem>Edit</DropdownMenuItem>
-              <DropdownMenuItem>Delete</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => deleteTask()}>
+                Delete
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

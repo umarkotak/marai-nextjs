@@ -128,56 +128,30 @@ class MaraiAPI {
     return this.requestForm('POST', '/marai/api/tasks/video/auto_dubbing', headers, {}, body);
   }
 
+  async postProcessTask(headers = {}, body = {}) {
+    return this.requestForm('POST', `/marai/api/tasks/${body.slug}/process`, headers, {}, body);
+  }
+
   async getTaskList(headers = {}, params = {}) {
     return this.get('/marai/api/tasks', headers, params);
   }
 
-  async getVideoDetail(headers = {}, { youtube_video_id, ...params } = {}) {
-    return this.get(`/ytkidd/api/youtube_video/${youtube_video_id}`, headers, params);
+  async getTaskStatus(headers = {}, params = {}) {
+    return this.get(`/marai/api/tasks/${params.slug}/status`, headers, params);
   }
 
-  async getChannels(headers = {}, params = {}) {
-    return this.get('/ytkidd/api/youtube_channels', headers, params);
+  async deleteTask(headers = {}, { book_id, ...params } = {}) {
+    return this.delete(`/marai/api/tasks/${params.slug}`, headers, params);
   }
 
-  async getBooks(headers = {}, params = {}) {
-    return this.get('/ytkidd/api/books', headers, params);
+  async getTaskLog(headers = {}, params = {}) {
+    return this.get(`/marai/api/tasks/${params.slug}/log`, headers, params);
   }
 
-  async getBookDetail(headers = {}, { book_id, ...params } = {}) {
-    return this.get(`/ytkidd/api/book/${book_id}`, headers, params);
-  }
-
-  async getChannelDetail(headers = {}, { channel_id, ...params } = {}) {
-    return this.get(`/ytkidd/api/youtube_channel/${channel_id}`, headers, params);
-  }
-
-  async getChannelDetailed(headers = {}, { channel_id, ...params } = {}) {
-    return this.get(`/ytkidd/api/youtube_channel/${channel_id}/detailed`, headers, params);
-  }
-
-  async deleteBook(headers = {}, { book_id, ...params } = {}) {
-    return this.delete(`/ytkidd/api/book/${book_id}`, headers, params);
-  }
-
-  async postAIChat(headers = {}, params = {}) {
-    return this.post('/ytkidd/api/ai/chat', headers, params);
-  }
-
-  async postSignUp(headers = {}, params = {}) {
-    return this.post('/ytkidd/api/user/sign_up', headers, params);
-  }
-
-  async postScrapYoutubeVideos(headers = {}, params = {}) {
-    return this.post('/ytkidd/api/youtube/scrap_videos', headers, params);
-  }
+  // EXAMPLE
 
   async patchUpdateYoutubeChannel(headers = {}, { id, ...params } = {}) {
     return this.patch(`/ytkidd/api/youtube_channel/${id}`, headers, params);
-  }
-
-  async getComfyUIOutput(headers = {}, params = {}) {
-    return this.get('/ytkidd/api/comfy_ui/output', headers, params);
   }
 }
 
