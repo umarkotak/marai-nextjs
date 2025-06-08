@@ -113,6 +113,7 @@ export function AppSidebar({ ...props }) {
 
   return (
     <Sidebar
+      className="z-30"
       collapsible="icon"
       variant="sidebar"
       {...props}

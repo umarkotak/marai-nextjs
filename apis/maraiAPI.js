@@ -136,6 +136,10 @@ class MaraiAPI {
     return this.get('/marai/api/tasks', headers, params);
   }
 
+  async getTaskDetail(headers = {}, params = {}) {
+    return this.get(`/marai/api/tasks/${params.slug}/detail`, headers, params);
+  }
+
   async getTaskStatus(headers = {}, params = {}) {
     return this.get(`/marai/api/tasks/${params.slug}/status`, headers, params);
   }

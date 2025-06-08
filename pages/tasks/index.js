@@ -300,7 +300,9 @@ function TaskRow({oneTask, getTaskList}) {
               {taskStatus?.task_progress_info?.status !== "completed" && taskStatus?.is_running === false &&
                 <DropdownMenuItem onClick={() => processTask()}>Continue Process</DropdownMenuItem>
               }
-              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "auto_dubbing" ? "dubbing" : "transcripting"}`}>
+                <DropdownMenuItem>Edit</DropdownMenuItem>
+              </Link>
               <DropdownMenuItem onClick={() => deleteTask()}>
                 Delete
               </DropdownMenuItem>
