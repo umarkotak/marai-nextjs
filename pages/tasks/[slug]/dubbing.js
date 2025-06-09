@@ -2,6 +2,7 @@ import maraiAPI from "@/apis/maraiAPI";
 import MovieTimeline from "@/components/MovieTimeline";
 import ReactPlayerClient from "@/components/ReactPlayerClient";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { DownloadIcon, SettingsIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
@@ -16,6 +17,9 @@ export default function TaskDubbing() {
   const [taskDetail, setTaskDetail] = useState({})
   const [playerState, setPlayerState] = useState({
     playing: false
+  })
+  const [dubbingInfo, setDubbingInfo] = useState({
+    duration_ms: 60000
   })
 
   async function GetTaskDetail(slug) {
@@ -40,10 +44,35 @@ export default function TaskDubbing() {
     }
   }
 
+  async function GetDubbingInfo(slug) {
+    if (!slug) { return }
+
+    try {
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      const response = await maraiAPI.getDubbingInfo({}, {
+        slug: slug
+      })
+
+      const body = await response.json()
+
+      if (response.status !== 200) {
+        toast.error(`Gagal memuat task dubbing info: ${JSON.stringify(body)}`)
+        return
+      }
+
+      setDubbingInfo(body.data)
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+    }
+  }
+
   useEffect(() => {
     if (!router.query.slug) { return }
 
     GetTaskDetail(router.query.slug)
+    GetDubbingInfo(router.query.slug)
   }, [router])
 
   return (
@@ -56,6 +85,24 @@ export default function TaskDubbing() {
               <div>
                 <Button size="icon_7"><SettingsIcon /></Button>
               </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              {Array.from({ length: dubbingInfo?.max_track_segment }, (_, i) => (
+                <div key={`transcript-segment-${i}`} className="grid grid-cols-2 text-sm gap-2 p-0.5 border rounded-md">
+                  <div>
+                    <Textarea
+                      value={dubbingInfo?.original_transcript?.transcript_lines[i].value}
+                      className="h-24"
+                    />
+                  </div>
+                  <div>
+                    <Textarea
+                      value={dubbingInfo?.translated_transcripts?.transcript_lines[i].value}
+                      className="h-24"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -81,6 +128,7 @@ export default function TaskDubbing() {
             playerState={playerState}
             setPlayerState={setPlayerState}
             taskDetail={taskDetail}
+            dubbingInfo={dubbingInfo}
           />
         </div>
       </div>

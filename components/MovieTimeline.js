@@ -1,70 +1,75 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause, Square, SkipBack, SkipForward, Volume2, Scissors, Move, Clock, Music, Plus } from 'lucide-react';
 import { Button } from './ui/button';
+import maraiAPI from '@/apis/maraiAPI';
+import { toast } from 'react-toastify';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 
 const MovieTimeline = ({
   playerState,
   setPlayerState,
   taskDetail,
+  dubbingInfo,
 }) => {
+  async function GetDubbingInfo(tempDubbingInfo) {
+    try {
+      if (!tempDubbingInfo.duration_ms) { return }
+
+      setDuration(tempDubbingInfo.duration_ms)
+
+      var tmpTrackLayers = []
+
+      if (!tempDubbingInfo.original_transcript?.id) { return }
+      if (!tempDubbingInfo.translated_transcripts?.id) { return }
+
+      tmpTrackLayers.push({
+        id: tempDubbingInfo.original_transcript?.id,
+        name: tempDubbingInfo.original_transcript?.speaker,
+        color: 'hsl(221.2 83.2% 53.3%)', // blue-600
+        volume: 1,
+        segments: tempDubbingInfo.original_transcript?.transcript_lines.map((segment) => ({
+          id: segment?.id,
+          startTime: segment.start_at_ms,
+          endTime: segment.end_at_ms,
+          waveform: generateWaveform(150),
+          name: segment?.speaker,
+          value: segment.value,
+        }))
+      })
+
+      tmpTrackLayers.push({
+        id: tempDubbingInfo.translated_transcripts?.id,
+        name: tempDubbingInfo.translated_transcripts?.speaker,
+        color: 'hsl(0 72.2% 50.6%)', // red-500
+        volume: 1,
+        segments: tempDubbingInfo.translated_transcripts?.transcript_lines.map((segment) => ({
+          id: segment?.id,
+          startTime: segment.start_at_ms,
+          endTime: segment.end_at_ms,
+          waveform: generateWaveform(150),
+          name: segment?.speaker,
+          value: segment.value,
+        }))
+      })
+
+      setTrackLayers(tmpTrackLayers)
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+    }
+  }
+
+  useEffect(() => {
+    GetDubbingInfo(dubbingInfo)
+  }, [taskDetail, dubbingInfo])
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(60000); // 60 seconds in ms
   const [volume, setVolume] = useState(0.8);
-  const [zoom, setZoom] = useState(1);
-  const [trackLayers, setTrackLayers] = useState([
-    {
-      id: 1,
-      name: 'Original Audio',
-      color: 'hsl(221.2 83.2% 53.3%)', // blue-600
-      volume: 0.8,
-      segments: [
-        {
-          id: 11,
-          startTime: 0,
-          endTime: 15000,
-          waveform: generateWaveform(150),
-          name: 'Dialogue 1'
-        },
-        {
-          id: 12,
-          startTime: 20000,
-          endTime: 30000,
-          waveform: generateWaveform(100),
-          name: 'Dialogue 2'
-        },
-        {
-          id: 13,
-          startTime: 35000,
-          endTime: 45000,
-          waveform: generateWaveform(100),
-          name: 'Dialogue 3'
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Dubbed Audio',
-      color: 'hsl(0 72.2% 50.6%)', // red-500
-      volume: 0.9,
-      segments: [
-        {
-          id: 21,
-          startTime: 5000,
-          endTime: 18000,
-          waveform: generateWaveform(130),
-          name: 'Dub 1'
-        },
-        {
-          id: 22,
-          startTime: 25000,
-          endTime: 40000,
-          waveform: generateWaveform(150),
-          name: 'Dub 2'
-        }
-      ]
-    }
-  ]);
+  const [zoom, setZoom] = useState(2);
+  const [trackLayers, setTrackLayers] = useState([]);
   const [selectedSegment, setSelectedSegment] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [playheadPosition, setPlayheadPosition] = useState(0);
@@ -341,7 +346,7 @@ const MovieTimeline = ({
         <div
           key={`label-${i}`}
           className="absolute top-4 text-xs text-muted-foreground font-mono"
-          style={{ left: `${timeToPixels(i) - 20}px` }}
+          style={{ left: `${timeToPixels(i)}px` }}
         >
           {formatTime(i)}
         </div>
@@ -358,35 +363,41 @@ const MovieTimeline = ({
   const selectedSegmentInfo = getSelectedSegmentInfo();
 
   return (
-    <div className="w-full mx-auto rounded-lg">
+    <div className="w-[calc(100vw-240px)] rounded-lg">
       {/* Header */}
       <div className="flex items-center justify-between p-1 bg-accent mb-2">
-        <div className="flex items-center gap-1">
-          <Button size="icon_7" variant="outline" onClick={togglePlayback}>
+        <div className="flex items-center gap-2">
+          <Button size="icon_8" variant="outline" onClick={togglePlayback}>
             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
           </Button>
 
-          <Button size="icon_7" variant="outline" onClick={() => setCurrentTime(0)}>
+          <Button size="icon_8" variant="outline" onClick={() => setCurrentTime(0)}>
             <Square size={16} />
           </Button>
 
           <Button
-            size="icon_7" variant="outline"
+            size="icon_8" variant="outline"
             onClick={() => setCurrentTime(Math.max(0, currentTime - 5000))}
           >
             <SkipBack size={16} />
           </Button>
 
           <Button
-            size="icon_7" variant="outline"
+            size="icon_8" variant="outline"
             onClick={() => setCurrentTime(Math.min(duration, currentTime + 5000))}
           >
             <SkipForward size={16} />
           </Button>
 
-          <div className="text-sm font-mono bg-muted px-3 py-1 rounded">
-            {formatTime(currentTime)}
-          </div>
+          <Input
+            className="text-sm font-mono bg-muted px-2 py-0.5 rounded w-32"
+            value={formatTime(currentTime)}
+          />
+          <span>/</span>
+          <Input
+            className="text-sm font-mono bg-muted px-2 py-0.5 rounded w-32" readOnly
+            value={formatTime(duration)}
+          />
         </div>
 
         <div className="flex items-center space-x-4">
@@ -408,7 +419,7 @@ const MovieTimeline = ({
             <span className="text-sm text-muted-foreground">Zoom</span>
             <input
               type="range"
-              min="0.5"
+              min="1"
               max="5"
               step="0.1"
               value={zoom}
@@ -458,23 +469,21 @@ const MovieTimeline = ({
           ))}
         </div>
 
-        <div className="flex-1 border p-2 overflow-x-auto">
+        <div className="flex-1 border p-2 overflow-auto">
           {/* Timeline Header */}
           <div
             ref={timelineRef}
             className="relative h-12 cursor-pointer"
             onClick={handleTimelineClick}
-            style={{ width: `${800 * zoom}px`, minWidth: '800px' }}
+            style={{ width: `${800 * zoom}px` }}
           >
             {generateMarkers()}
 
             {/* Playhead */}
             <div
-              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20 pointer-events-none"
+              className="absolute top-0 bottom-0 w-[1px] bg-red-500 z-20 pointer-events-none"
               style={{ left: `${playheadPosition}px` }}
-            >
-              <div className="absolute -top-1 -left-1.5 w-3 h-3 bg-red-500 rotate-45 rounded-sm"></div>
-            </div>
+            ></div>
           </div>
 
           {/* Track Layers */}
@@ -484,7 +493,7 @@ const MovieTimeline = ({
                 {/* Layer Timeline */}
                 <div
                   className="relative h-12 bg-muted/30 rounded-md border"
-                  style={{ width: `${800 * zoom}px`, minWidth: '800px' }}
+                  style={{ width: `${800 * zoom}px` }}
                 >
                   {/* Audio Segments */}
                   {layer.segments.map((segment) => (
@@ -552,27 +561,32 @@ const MovieTimeline = ({
 
         <div className='w-64 border bg-muted/50 p-2'>
           {selectedSegmentInfo &&
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-0.5">
               <div className="flex items-center space-x-2">
                 <Music size={16} className="text-muted-foreground" />
                 <span className="font-medium">{selectedSegmentInfo.name}</span>
                 <span className="text-xs text-muted-foreground">({selectedSegmentInfo.layerName})</span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Start:</span>
-                <span className="font-mono">{formatTime(selectedSegmentInfo.startTime)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>End:</span>
-                <span className="font-mono">{formatTime(selectedSegmentInfo.endTime)}</span>
+                <span>Time:</span>
+                <span className="font-mono text-xs">{formatTime(selectedSegmentInfo.startTime)} - {formatTime(selectedSegmentInfo.endTime)}</span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Duration:</span>
-                <span className="font-mono">{formatTime(selectedSegmentInfo.duration)}</span>
+                <span className="font-mono text-xs">{formatTime(selectedSegmentInfo.duration)}</span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <Volume2 size={14} />
-                <span>{Math.round(selectedSegmentInfo.layerVolume * 100)}%</span>
+                <span>Volume:</span>
+                <span className="font-mono text-xs">{Math.round(selectedSegmentInfo.layerVolume * 100)}%</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Value:</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <Textarea
+                  value={selectedSegmentInfo?.value}
+                  className="p-0.5"
+                />
               </div>
             </div>
           }
