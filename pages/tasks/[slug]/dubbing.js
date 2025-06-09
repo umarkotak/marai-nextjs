@@ -124,6 +124,7 @@ export default function TaskDubbing() {
                 playerState={playerState}
                 url={taskDetail.final_video_url}
                 playing={playerState.playing}
+                muted={true}
               />
             </div>
           </div>

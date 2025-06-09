@@ -13,6 +13,10 @@ const MovieTimeline = ({
   taskDetail,
   dubbingInfo,
 }) => {
+  // Audio references for each segment
+  const audioRefs = useRef(new Map());
+  const currentlyPlayingAudios = useRef(new Set());
+
   async function GetDubbingInfo(tempDubbingInfo) {
     try {
       if (!tempDubbingInfo.duration_ms) { return }
@@ -36,6 +40,7 @@ const MovieTimeline = ({
           waveform: generateWaveform(150),
           name: segment?.speaker,
           value: segment.value,
+          audioUrl: segment?.audio_url || segment?.wav_url, // Add audio URL
         }))
       })
 
@@ -51,6 +56,7 @@ const MovieTimeline = ({
           waveform: generateWaveform(150),
           name: segment?.speaker,
           value: segment.value,
+          audioUrl: segment?.audio_url || segment?.wav_url, // Add audio URL
         }))
       })
 
@@ -105,6 +111,116 @@ const MovieTimeline = ({
     const milliseconds = ms % 1000;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
   };
+
+  // Preload audio elements
+  const preloadAudio = useCallback((segment, layerVolume) => {
+    if (!segment.audioUrl || audioRefs.current.has(segment.id)) return;
+
+    const audio = new Audio();
+    audio.src = segment.audioUrl;
+    audio.preload = 'auto';
+    audio.volume = layerVolume * volume;
+
+    // Handle loading events
+    audio.addEventListener('loadeddata', () => {
+      console.log(`Audio loaded for segment ${segment.id}`);
+    });
+
+    audio.addEventListener('error', (e) => {
+      console.error(`Failed to load audio for segment ${segment.id}:`, e);
+    });
+
+    audioRefs.current.set(segment.id, audio);
+  }, [volume]);
+
+  // Check which segments should be playing at current time and play/stop accordingly
+  const updateAudioPlayback = useCallback(() => {
+    if (!isPlaying) {
+      // Stop all playing audios when timeline is paused
+      currentlyPlayingAudios.current.forEach(segmentId => {
+        const audio = audioRefs.current.get(segmentId);
+        if (audio && !audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      });
+      currentlyPlayingAudios.current.clear();
+      return;
+    }
+
+    const activeSegments = new Set();
+
+    // Find all segments that should be playing at current time
+    trackLayers.forEach(layer => {
+      layer.segments.forEach(segment => {
+        if (currentTime >= segment.startTime && currentTime < segment.endTime) {
+          activeSegments.add(segment.id);
+
+          // Preload audio if not already loaded
+          preloadAudio(segment, layer.volume);
+
+          const audio = audioRefs.current.get(segment.id);
+          if (audio) {
+            // Update volume based on layer volume and master volume
+            audio.volume = layer.volume * volume;
+
+            // If audio is not currently playing, start it
+            if (!currentlyPlayingAudios.current.has(segment.id)) {
+              const segmentElapsedTime = (currentTime - segment.startTime) / 1000;
+              audio.currentTime = Math.max(0, segmentElapsedTime);
+
+              audio.play().catch(e => {
+                console.error(`Failed to play audio for segment ${segment.id}:`, e);
+              });
+
+              currentlyPlayingAudios.current.add(segment.id);
+            }
+          }
+        }
+      });
+    });
+
+    // Stop audios that should no longer be playing
+    currentlyPlayingAudios.current.forEach(segmentId => {
+      if (!activeSegments.has(segmentId)) {
+        const audio = audioRefs.current.get(segmentId);
+        if (audio && !audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+        currentlyPlayingAudios.current.delete(segmentId);
+      }
+    });
+  }, [currentTime, isPlaying, trackLayers, volume, preloadAudio]);
+
+  // Update audio playback when currentTime or isPlaying changes
+  useEffect(() => {
+    updateAudioPlayback();
+  }, [updateAudioPlayback]);
+
+  // Update audio volumes when master volume or layer volumes change
+  useEffect(() => {
+    trackLayers.forEach(layer => {
+      layer.segments.forEach(segment => {
+        const audio = audioRefs.current.get(segment.id);
+        if (audio) {
+          audio.volume = layer.volume * volume;
+        }
+      });
+    });
+  }, [volume, trackLayers]);
+
+  // Cleanup audio elements on unmount
+  useEffect(() => {
+    return () => {
+      audioRefs.current.forEach(audio => {
+        audio.pause();
+        audio.src = '';
+      });
+      audioRefs.current.clear();
+      currentlyPlayingAudios.current.clear();
+    };
+  }, []);
 
   // Get selected segment info
   const getSelectedSegmentInfo = () => {
@@ -175,9 +291,18 @@ const MovieTimeline = ({
     const newTime = pixelsToTime(x);
 
     if (newTime >= 0 && newTime <= duration) {
+      // Stop all currently playing audios before seeking
+      currentlyPlayingAudios.current.forEach(segmentId => {
+        const audio = audioRefs.current.get(segmentId);
+        if (audio && !audio.paused) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      });
+      currentlyPlayingAudios.current.clear();
+
       setCurrentTime(newTime);
-      // console.log("PLAYER REF", playerRef.current)
-      playerRef.current?.seekTo(newTime/1000)
+      playerRef.current?.seekTo(newTime/1000);
     }
   };
 
@@ -517,6 +642,8 @@ const MovieTimeline = ({
                       key={segment.id}
                       className={`absolute top-0.5 bottom-0.5 rounded-sm transition-all duration-150 group border ${
                         selectedSegment === segment.id ? 'ring-2 ring-ring ring-offset-1' : 'hover:ring-1 hover:ring-ring/50'
+                      } ${
+                        currentlyPlayingAudios.current.has(segment.id) ? 'ring-2 ring-green-500' : ''
                       }`}
                       style={{
                         left: `${timeToPixels(segment.startTime)}px`,
@@ -539,24 +666,17 @@ const MovieTimeline = ({
                         className="absolute left-1 right-1 top-0 bottom-0 cursor-move"
                         onMouseDown={(e) => handleSegmentMouseDown(segment.id, e)}
                       >
-                        {/* Waveform Visualization */}
-                        <div className="flex items-end h-full px-1 py-0.5 overflow-hidden">
-                          {segment.waveform.map((amplitude, i) => (
-                            <div
-                              key={i}
-                              className="bg-white/60 mr-px flex-shrink-0 rounded-full"
-                              style={{
-                                height: `${amplitude * 100}%`,
-                                width: `${Math.max(0.5, (timeToPixels(segment.endTime - segment.startTime) / segment.waveform.length))}px`
-                              }}
-                            />
-                          ))}
-                        </div>
-
                         {/* Segment Label */}
                         <div className="absolute top-0 left-1 text-xs text-white/80 truncate max-w-full">
                           {segment.name}
                         </div>
+
+                        {/* Audio indicator */}
+                        {segment.audioUrl && (
+                          <div className="absolute top-0 right-1 text-xs text-white/60">
+                            ♪
+                          </div>
+                        )}
                       </div>
 
                       {/* Right Resize Handle */}
@@ -595,6 +715,12 @@ const MovieTimeline = ({
                 <span>Volume:</span>
                 <span className="font-mono text-xs">{Math.round(selectedSegmentInfo.layerVolume * 100)}%</span>
               </div>
+              {selectedSegmentInfo.audioUrl && (
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Audio:</span>
+                  <span className="text-xs text-green-600">Available</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Value:</span>
               </div>
