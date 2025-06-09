@@ -8,6 +8,7 @@ import { Textarea } from './ui/textarea';
 
 const MovieTimeline = ({
   playerState,
+  playerRef,
   setPlayerState,
   taskDetail,
   dubbingInfo,
@@ -127,35 +128,43 @@ const MovieTimeline = ({
   // Play/pause functionality
   const togglePlayback = () => {
     if (isPlaying) {
-      setIsPlaying(false);
-      setPlayerState({
-        ...playerState,
-        playing: false
-      })
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      stopPlaying()
     } else {
-      setIsPlaying(true);
-      setPlayerState({
-        ...playerState,
-        playing: true
-      })
-      const startTime = Date.now() - currentTime;
-
-      const updateTime = () => {
-        const elapsed = Date.now() - startTime;
-        if (elapsed >= duration) {
-          setCurrentTime(duration);
-          setIsPlaying(false);
-          return;
-        }
-        setCurrentTime(elapsed);
-        animationRef.current = requestAnimationFrame(updateTime);
-      };
-      updateTime();
+      startPlaying()
     }
   };
+
+  const stopPlaying = () => {
+    setIsPlaying(false);
+    setPlayerState({
+      ...playerState,
+      playing: false
+    })
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+  }
+
+  const startPlaying = () => {
+    setIsPlaying(true);
+    setPlayerState({
+      ...playerState,
+      playing: true
+    })
+    const startTime = Date.now() - currentTime;
+
+    const updateTime = () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= duration) {
+        setCurrentTime(duration);
+        setIsPlaying(false);
+        return;
+      }
+      setCurrentTime(elapsed);
+      animationRef.current = requestAnimationFrame(updateTime);
+    };
+    updateTime();
+  }
 
   // Handle timeline click
   const handleTimelineClick = (e) => {
@@ -167,6 +176,8 @@ const MovieTimeline = ({
 
     if (newTime >= 0 && newTime <= duration) {
       setCurrentTime(newTime);
+      // console.log("PLAYER REF", playerRef.current)
+      playerRef.current?.seekTo(newTime/1000)
     }
   };
 
@@ -371,7 +382,11 @@ const MovieTimeline = ({
             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
           </Button>
 
-          <Button size="icon_8" variant="outline" onClick={() => setCurrentTime(0)}>
+          <Button size="icon_8" variant="outline" onClick={() => {
+            setCurrentTime(0);
+            playerRef.current?.seekTo(0);
+            stopPlaying();
+          }}>
             <Square size={16} />
           </Button>
 
@@ -392,6 +407,7 @@ const MovieTimeline = ({
           <Input
             className="text-sm font-mono bg-muted px-2 py-0.5 rounded w-32"
             value={formatTime(currentTime)}
+            onChange={() => {}}
           />
           <span>/</span>
           <Input
@@ -586,6 +602,7 @@ const MovieTimeline = ({
                 <Textarea
                   value={selectedSegmentInfo?.value}
                   className="p-0.5"
+                  onChange={() => {}}
                 />
               </div>
             </div>

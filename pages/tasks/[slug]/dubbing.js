@@ -1,14 +1,14 @@
 import maraiAPI from "@/apis/maraiAPI";
 import MovieTimeline from "@/components/MovieTimeline";
-import ReactPlayerClient from "@/components/ReactPlayerClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DownloadIcon, SettingsIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import ReactPlayer from "react-player";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import dynamic from 'next/dynamic';
+const ReactPlayerClient = dynamic(() => import('@/components/ReactPlayerClient'), { ssr: false });
 
 export default function TaskDubbing() {
   const router = useRouter()
@@ -16,11 +16,13 @@ export default function TaskDubbing() {
 
   const [taskDetail, setTaskDetail] = useState({})
   const [playerState, setPlayerState] = useState({
-    playing: false
+    playing: false,
+    seekto: 0,
   })
   const [dubbingInfo, setDubbingInfo] = useState({
     duration_ms: 60000
   })
+  const playerRef = useRef(null)
 
   async function GetTaskDetail(slug) {
     try {
@@ -93,12 +95,14 @@ export default function TaskDubbing() {
                     <Textarea
                       value={dubbingInfo?.original_transcript?.transcript_lines[i].value}
                       className="h-24"
+                      readOnly
                     />
                   </div>
                   <div>
                     <Textarea
                       value={dubbingInfo?.translated_transcripts?.transcript_lines[i].value}
                       className="h-24"
+                      onChange={() => {}}
                     />
                   </div>
                 </div>
@@ -116,6 +120,8 @@ export default function TaskDubbing() {
 
             <div className="mt-2">
               <ReactPlayerClient
+                playerRef={playerRef}
+                playerState={playerState}
                 url={taskDetail.final_video_url}
                 playing={playerState.playing}
               />
@@ -127,6 +133,7 @@ export default function TaskDubbing() {
           <MovieTimeline
             playerState={playerState}
             setPlayerState={setPlayerState}
+            playerRef={playerRef}
             taskDetail={taskDetail}
             dubbingInfo={dubbingInfo}
           />

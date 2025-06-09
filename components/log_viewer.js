@@ -53,7 +53,7 @@ const LogLine = ({ text }) => {
     };
 
     return <div className={applySyntaxHighlighting(text)}>
-      <span className="text-xs">{displayedText}</span>
+      <span className="text-[10px]">{displayedText}</span>
     </div>;
 };
 

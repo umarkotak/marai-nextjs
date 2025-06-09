@@ -1,27 +1,18 @@
 // components/ReactPlayerClient.js
-import React, { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useState, useEffect, useRef } from 'react';
+// import dynamic from 'next/dynamic';
 
 // Dynamically import ReactPlayer with SSR turned off
-const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
+// const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
+import ReactPlayer from "react-player/lazy";
 // Using 'react-player/lazy' is recommended as it only loads the necessary player
 // for the URL type, reducing bundle size. You can also use import('react-player').
 
-const ReactPlayerClient = ({ url, ...props }) => {
-  const [hasMounted, setHasMounted] = useState(false);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  if (!hasMounted) {
-    // You can return a loading skeleton or null here
-    return <p>Loading player...</p>;
-  }
-
+const ReactPlayerClient = ({ playerRef, url, ...props }) => {
   return (
     <div className="relative pt-[56.25%] rounded-lg overflow-hidden bg-black">
       <ReactPlayer
+        ref={playerRef}
         className="absolute top-0 left-0"
         url={url}
         width="100%"
