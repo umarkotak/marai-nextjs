@@ -128,6 +128,10 @@ class MaraiAPI {
     return this.requestForm('POST', '/marai/api/tasks/video/auto_dubbing', headers, {}, body);
   }
 
+  async postCreateTranscriptingTask(headers = {}, body = {}) {
+    return this.requestForm('POST', '/marai/api/tasks/transcripting', headers, {}, body);
+  }
+
   async postProcessTask(headers = {}, body = {}) {
     return this.requestForm('POST', `/marai/api/tasks/${body.slug}/process`, headers, {}, body);
   }

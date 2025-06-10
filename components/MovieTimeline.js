@@ -16,6 +16,7 @@ const MovieTimeline = ({
   // Audio references for each segment
   const audioRefs = useRef(new Map());
   const currentlyPlayingAudios = useRef(new Set());
+  const [activeAudio, setActiveAudio] = useState("translated")
 
   async function GetDubbingInfo(tempDubbingInfo) {
     try {
@@ -29,11 +30,11 @@ const MovieTimeline = ({
       if (!tempDubbingInfo.translated_transcripts?.id) { return }
 
       tmpTrackLayers.push({
-        id: tempDubbingInfo.original_transcript?.id,
-        name: tempDubbingInfo.original_transcript?.speaker,
-        color: 'hsl(221.2 83.2% 53.3%)', // blue-600
+        id: tempDubbingInfo.translated_transcripts?.id,
+        name: tempDubbingInfo.translated_transcripts?.speaker,
+        color: 'hsl(0 72.2% 50.6%)', // red-500
         volume: 1,
-        segments: tempDubbingInfo.original_transcript?.transcript_lines.map((segment) => ({
+        segments: tempDubbingInfo.translated_transcripts?.transcript_lines.map((segment) => ({
           id: segment?.id,
           startTime: segment.start_at_ms,
           endTime: segment.end_at_ms,
@@ -45,11 +46,11 @@ const MovieTimeline = ({
       })
 
       tmpTrackLayers.push({
-        id: tempDubbingInfo.translated_transcripts?.id,
-        name: tempDubbingInfo.translated_transcripts?.speaker,
-        color: 'hsl(0 72.2% 50.6%)', // red-500
-        volume: 1,
-        segments: tempDubbingInfo.translated_transcripts?.transcript_lines.map((segment) => ({
+        id: tempDubbingInfo.original_transcript?.id,
+        name: tempDubbingInfo.original_transcript?.speaker,
+        color: 'hsl(221.2 83.2% 53.3%)', // blue-600
+        volume: 0,
+        segments: tempDubbingInfo.original_transcript?.transcript_lines.map((segment) => ({
           id: segment?.id,
           startTime: segment.start_at_ms,
           endTime: segment.end_at_ms,
@@ -481,7 +482,7 @@ const MovieTimeline = ({
       markers.push(
         <div
           key={`label-${i}`}
-          className="absolute top-4 text-xs text-muted-foreground font-mono"
+          className="absolute top-4 text-[9px] text-muted-foreground font-mono"
           style={{ left: `${timeToPixels(i)}px` }}
         >
           {formatTime(i)}
@@ -575,11 +576,28 @@ const MovieTimeline = ({
       {/* Timeline Container */}
       <div className='flex rounded-lg bg-muted/20'>
         <div className='w-52 border bg-muted/50 p-2'>
-          <div className='h-12'></div>
+          <div className='h-10'>
+            <div className='flex gap-2'>
+              <Button
+                size="xs" variant={activeAudio === "translated" ? "" : "outline"}
+                onClick={() => {
+                  setActiveAudio("translated")
+                  setTrackLayers(prev => prev.map(l => l.id === "translated" ? { ...l, volume: 1 } : { ...l, volume: 0 }));
+                }}
+              >Translated</Button>
+              <Button
+                size="xs" variant={activeAudio === "original" ? "" : "outline"}
+                onClick={() => {
+                  setActiveAudio("original")
+                  setTrackLayers(prev => prev.map(l => l.id === "original" ? { ...l, volume: 1 } : { ...l, volume: 0 }));
+                }}
+              >Original</Button>
+            </div>
+          </div>
           {trackLayers.map((layer) => (
-            <div key={`audio-track-layer-${layer.id}`} className="h-12 mb-4">
+            <div key={`audio-track-layer-${layer.id}`} className="h-10 mb-4">
               <div className="flex items-center space-x-2">
-                <div className="text-sm font-medium">{layer.name}</div>
+                <div className="text-sm font-medium">{layer.id}</div>
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: layer.color }}
@@ -614,7 +632,7 @@ const MovieTimeline = ({
           {/* Timeline Header */}
           <div
             ref={timelineRef}
-            className="relative h-12 cursor-pointer"
+            className="relative h-10 cursor-pointer"
             onClick={handleTimelineClick}
             style={{ width: `${800 * zoom}px` }}
           >
@@ -622,7 +640,7 @@ const MovieTimeline = ({
 
             {/* Playhead */}
             <div
-              className="absolute top-0 bottom-0 w-[1px] bg-red-500 z-20 pointer-events-none"
+              className="absolute top-0 bottom-0 w-[1px] bg-red-500 z-20 pointer-events-none h-4"
               style={{ left: `${playheadPosition}px` }}
             ></div>
           </div>
@@ -633,14 +651,14 @@ const MovieTimeline = ({
               <div key={layer.id} className="relative">
                 {/* Layer Timeline */}
                 <div
-                  className="relative h-12 bg-muted/30 rounded-md border"
+                  className="relative h-10 bg-muted/30 rounded-md border"
                   style={{ width: `${800 * zoom}px` }}
                 >
                   {/* Audio Segments */}
                   {layer.segments.map((segment) => (
                     <div
                       key={segment.id}
-                      className={`absolute top-0.5 bottom-0.5 rounded-sm transition-all duration-150 group border ${
+                      className={`absolute top-0.5 bottom-0.5 rounded-sm group border ${
                         selectedSegment === segment.id ? 'ring-2 ring-ring ring-offset-1' : 'hover:ring-1 hover:ring-ring/50'
                       } ${
                         currentlyPlayingAudios.current.has(segment.id) ? 'ring-2 ring-green-500' : ''
@@ -654,7 +672,7 @@ const MovieTimeline = ({
                     >
                       {/* Left Resize Handle */}
                       <div
-                        className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize bg-white/0 hover:bg-white/20 transition-all duration-150"
+                        className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize bg-white/0 hover:bg-white/20"
                         onMouseDown={(e) => handleLeftResizeMouseDown(segment.id, e)}
                         title="Resize left edge"
                       >
@@ -681,7 +699,7 @@ const MovieTimeline = ({
 
                       {/* Right Resize Handle */}
                       <div
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize bg-white/0 hover:bg-white/20 transition-all duration-150"
+                        className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize bg-white/0 hover:bg-white/20"
                         onMouseDown={(e) => handleRightResizeMouseDown(segment.id, e)}
                         title="Resize right edge"
                       >

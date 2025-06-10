@@ -62,6 +62,7 @@ export default function TaskCreate() {
     setIsSubmitting(true)
     const formData = new FormData()
     formData.append("task_name", createParams.task_name)
+    formData.append("task_type", createParams.task_type)
     formData.append("youtube_video_url", createParams.youtube_video_url)
     formData.append("voice_mode", createParams.voice_mode)
     formData.append("voice_name", createParams.voice_name)
@@ -74,9 +75,16 @@ export default function TaskCreate() {
     formData.append("audio_file", audioFile)
 
     try {
-      const response = await maraiAPI.postCreateAutoDubbingTask({
-        "Content-Type": "multipart/form-data"
-      }, formData)
+      let response
+      if (createParams.task_type === "auto_dubbing") {
+        response = await maraiAPI.postCreateAutoDubbingTask({
+          "Content-Type": "multipart/form-data"
+        }, formData)
+      } else {
+        response = await maraiAPI.postCreateTranscriptingTask({
+          "Content-Type": "multipart/form-data"
+        }, formData)
+      }
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -86,7 +94,7 @@ export default function TaskCreate() {
       }
 
     } catch (error) {
-      toast.error(`Error: ${error}`)
+      toast.error(`Error Catch: ${error}`)
       setIsSubmitting(false)
       return
     }
@@ -113,7 +121,8 @@ export default function TaskCreate() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="auto_dubbing">Auto Dubbing Video</SelectItem>
-                  <SelectItem value="transcripting">Transcripting</SelectItem>
+                  <SelectItem value="basic_transcript">Basic Transcript</SelectItem>
+                  <SelectItem value="diarize_transcript">Diarize Transcript</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -137,7 +146,7 @@ export default function TaskCreate() {
                 <SelectContent>
                   <SelectItem value="youtube_video_url">Youtube Video URL</SelectItem>
                   <SelectItem value="video_file">Video File</SelectItem>
-                  {createParams.task_type === "transcripting" && <SelectItem value="audio_file">Audio File</SelectItem>}
+                  {createParams.task_type.includes("transcript") && <SelectItem value="audio_file">Audio File</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -155,6 +164,7 @@ export default function TaskCreate() {
               ? <div className="flex-1">
                 <Label>Video File</Label>
                 <Input
+                  className=""
                   type="file"
                   // accept="application/pdf"
                   onChange={(e)=>handleVideoFileChange(e)}
@@ -163,6 +173,7 @@ export default function TaskCreate() {
               : <div className="flex-1">
                 <Label>Audio File</Label>
                 <Input
+                  className=""
                   type="file"
                   // accept="application/pdf"
                   onChange={(e)=>handleAudioFileChange(e)}
@@ -170,47 +181,49 @@ export default function TaskCreate() {
               </div>
             }
           </div>
-          <div>
-            <Label>Voice Mode</Label>
-            <Select onValueChange={(value) => {handleChange("voice_mode", value)}} defaultValue={createParams.voice_mode}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="edge-tts">Edge TTS</SelectItem>
-                <SelectItem value="chatterbox">Chatterbox</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {createParams.voice_mode === "edge-tts"
-            ? <div className="flex gap-1 items-center">
-              <div className="w-full">
-                <Label>Voice Name</Label>
-                <Input
-                  type="text"
-                  onChange={(e) => {handleChange("voice_name", e.target.value)}}
-                  value={createParams.voice_name}
-                />
-              </div>
-              <div className="w-full">
-                <Label>Voice Pitch</Label>
-                <Input
-                  type="text"
-                  onChange={(e) => {handleChange("voice_pitch", e.target.value)}}
-                  value={createParams.voice_pitch}
-                />
-              </div>
-              <div className="w-full">
-                <Label>Voice Rate</Label>
-                <Input
-                  type="text"
-                  onChange={(e) => {handleChange("voice_rate", e.target.value)}}
-                  value={createParams.voice_rate}
-                />
-              </div>
+          {createParams.task_type.includes("dubbing") && <>
+            <div>
+              <Label>Voice Mode</Label>
+              <Select onValueChange={(value) => {handleChange("voice_mode", value)}} defaultValue={createParams.voice_mode}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="edge-tts">Edge TTS</SelectItem>
+                  <SelectItem value="chatterbox">Chatterbox</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            : null
-          }
+            {createParams.voice_mode === "edge-tts"
+              ? <div className="flex gap-1 items-center">
+                <div className="w-full">
+                  <Label>Voice Name</Label>
+                  <Input
+                    type="text"
+                    onChange={(e) => {handleChange("voice_name", e.target.value)}}
+                    value={createParams.voice_name}
+                  />
+                </div>
+                <div className="w-full">
+                  <Label>Voice Pitch</Label>
+                  <Input
+                    type="text"
+                    onChange={(e) => {handleChange("voice_pitch", e.target.value)}}
+                    value={createParams.voice_pitch}
+                  />
+                </div>
+                <div className="w-full">
+                  <Label>Voice Rate</Label>
+                  <Input
+                    type="text"
+                    onChange={(e) => {handleChange("voice_rate", e.target.value)}}
+                    value={createParams.voice_rate}
+                  />
+                </div>
+              </div>
+              : null
+            }
+          </>}
           <div className="flex gap-1 items-center">
             <div className="flex-1">
               <Label>Source Language</Label>
