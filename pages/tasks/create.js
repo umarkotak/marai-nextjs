@@ -234,15 +234,17 @@ export default function TaskCreate() {
                 <LanguageSelectList />
               </Select>
             </div>
-            <div className="flex-1">
-              <Label>Target Language</Label>
-              <Select onValueChange={(value) => {handleChange("target_language", value)}} defaultValue={createParams.target_language}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <LanguageSelectList />
-              </Select>
-            </div>
+            {createParams.task_type.includes("dubbing") &&
+              <div className="flex-1">
+                <Label>Target Language</Label>
+                <Select onValueChange={(value) => {handleChange("target_language", value)}} defaultValue={createParams.target_language}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <LanguageSelectList />
+                </Select>
+              </div>
+            }
             <div className="flex-1">
               <Label>Number of Speakers</Label>
               <Input

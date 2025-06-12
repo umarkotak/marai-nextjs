@@ -2,6 +2,7 @@ import maraiAPI from "@/apis/maraiAPI";
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Terminal, Clipboard, Check } from 'lucide-react';
 import { toast } from "react-toastify";
+import { LoadingSpinner } from "./ui/icon";
 
 const stripAnsiCodes = (text) => {
   // This regex removes the ANSI escape sequences used for color.
@@ -137,7 +138,7 @@ export default function LogViewer ({ slug }) {
   };
 
   return (
-    <div className="w-full mx-auto bg-[#1a1b26] rounded-xl shadow-2xl overflow-hidden font-mono">
+    <div className="w-full mx-auto bg-[#1a1b26] shadow-2xl overflow-hidden font-mono">
       {/* Terminal Header */}
       {/* <div className="bg-[#282a36] flex items-center justify-between px-4 py-2 text-gray-300">
         <div className="flex items-center space-x-2">
@@ -160,10 +161,10 @@ export default function LogViewer ({ slug }) {
       </div> */}
 
       {/* Log Content */}
-      <div ref={logContainerRef} className="p-4 h-96 overflow-y-auto text-sm break-all leading-tight">
+      <div ref={logContainerRef} className="p-1 h-96 overflow-y-auto text-sm break-all leading-tight">
         {isLoading ? (
           <div className="flex items-center text-gray-400">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-100 mr-2"></div>
+            <LoadingSpinner />
             Fetching logs...
           </div>
         ) : (

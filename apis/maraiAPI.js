@@ -152,6 +152,10 @@ class MaraiAPI {
     return this.get(`/marai/api/tasks/${params.slug}/dubbing_info`, headers, params);
   }
 
+  async getTranscriptInfo(headers = {}, params = {}) {
+    return this.get(`/marai/api/tasks/${params.slug}/transcript_info`, headers, params);
+  }
+
   async deleteTask(headers = {}, { book_id, ...params } = {}) {
     return this.delete(`/marai/api/tasks/${params.slug}`, headers, params);
   }

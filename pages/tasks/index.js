@@ -34,7 +34,7 @@ import { LoadingSpinner } from "@/components/ui/icon"
 import { useRouter } from "next/router"
 import { toast } from "react-toastify"
 import maraiAPI from "@/apis/maraiAPI"
-import { ImageIcon, InfoIcon, MoreHorizontal } from "lucide-react"
+import { ImageIcon, InfoIcon, LinkIcon, MicIcon, MoreHorizontal } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormatDateConcrete } from "@/lib/datetimeUtils"
@@ -206,7 +206,7 @@ function TaskRow({oneTask, getTaskList}) {
         <Avatar className="h-10 w-20 rounded">
           <AvatarImage src={oneTask.thumbnail_url} alt="thumbnail" />
           <AvatarFallback className="rounded">
-            <ImageIcon />
+            {oneTask?.task_type?.includes("transcript") ? <MicIcon /> : <ImageIcon />}
           </AvatarFallback>
         </Avatar>
       </TableCell>
@@ -235,27 +235,27 @@ function TaskRow({oneTask, getTaskList}) {
                 <SheetTitle>{oneTask.name}</SheetTitle>
               </SheetHeader>
               <SheetDescription>
-                <div className="flex flex-col gap-1 max-h-screen overflow-auto">
+                <div className="flex flex-col gap-2 max-h-screen overflow-auto">
                   <div>
-                    <label className="text-xs font-bold">slug:</label>
+                    <label className="text-xs font-bold">Slug:</label>
                     <div className="text-sm">{oneTask.slug}</div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold">task type:</label>
+                    <label className="text-xs font-bold">Task Type:</label>
                     <div className="text-sm">{oneTask.task_type}</div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold">status:</label>
+                    <label className="text-xs font-bold">Status:</label>
                     <div className="text-sm">[{taskStatus?.task_progress_info?.status_index}/{taskStatus?.task_progress_info?.final_index}] - {oneTask.status}</div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold">youtube video url:</label>
+                    <label className="text-xs font-bold">Youtube Video URL:</label>
                     <div className="text-sm text-primary">
                       <a href={oneTask.youtube_video_url} target="_blank">{oneTask.youtube_video_url}</a>
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold">progress:</label>
+                    <label className="text-xs font-bold">Progress:</label>
                     <div className="flex flex-col gap-1">
                       {taskStatus?.task_progress_info?.progresses.map((prog) => (
                         <div className="flex gap-1 items-center" key={`side-drawer-prog-${oneTask.slug}-${prog.status}`}>
@@ -266,7 +266,12 @@ function TaskRow({oneTask, getTaskList}) {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold">logs:</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold">Logs:</span>
+                      <Link href="#">
+                        <span className="text-xs font-bold flex gap-1 items-center hover:bg-accent"><LinkIcon size={11} /> See All</span>
+                      </Link>
+                    </div>
                     <LogViewer
                       slug={oneTask.slug}
                     />
