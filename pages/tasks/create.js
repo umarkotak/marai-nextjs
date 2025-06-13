@@ -164,18 +164,18 @@ export default function TaskCreate() {
               ? <div className="flex-1">
                 <Label>Video File</Label>
                 <Input
-                  className=""
+                  id="video_file"
                   type="file"
-                  // accept="application/pdf"
+                  accept="video/mp4,video/x-m4v,video/*"
                   onChange={(e)=>handleVideoFileChange(e)}
                 />
               </div>
               : <div className="flex-1">
                 <Label>Audio File</Label>
                 <Input
-                  className=""
+                  id="audio_file"
                   type="file"
-                  // accept="application/pdf"
+                  accept="audio/wav"
                   onChange={(e)=>handleAudioFileChange(e)}
                 />
               </div>

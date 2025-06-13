@@ -34,7 +34,7 @@ import { LoadingSpinner } from "@/components/ui/icon"
 import { useRouter } from "next/router"
 import { toast } from "react-toastify"
 import maraiAPI from "@/apis/maraiAPI"
-import { ImageIcon, InfoIcon, LinkIcon, MicIcon, MoreHorizontal } from "lucide-react"
+import { ImageIcon, InfoIcon, LinkIcon, MicIcon, MoreHorizontal, VideoIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormatDateConcrete } from "@/lib/datetimeUtils"
@@ -206,7 +206,7 @@ function TaskRow({oneTask, getTaskList}) {
         <Avatar className="h-10 w-20 rounded">
           <AvatarImage src={oneTask.thumbnail_url} alt="thumbnail" />
           <AvatarFallback className="rounded">
-            {oneTask?.task_type?.includes("transcript") ? <MicIcon /> : <ImageIcon />}
+            {oneTask?.task_type?.includes("transcript") ? <MicIcon /> : <VideoIcon />}
           </AvatarFallback>
         </Avatar>
       </TableCell>

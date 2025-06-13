@@ -48,6 +48,7 @@ const data = {
       items: [
         { title: "Create", url: "/tasks/create", },
         { title: "List", url: "/tasks", },
+        { title: "Recorder", url: "/tasks/recorder", },
       ],
     },
     // {

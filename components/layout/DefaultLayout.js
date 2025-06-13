@@ -34,7 +34,7 @@ export default function DefaultLayout({ children }) {
           <ThemeToggle />
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 px-2 py-2">
+        <div className="flex flex-1 flex-col gap-4 px-2 py-2 w-full">
           {children}
         </div>
       </main>

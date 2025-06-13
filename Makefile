@@ -1,5 +1,5 @@
 run:
 	npm run dev
 
-ni:
+install:
 	npm i --save --legacy-peer-deps
