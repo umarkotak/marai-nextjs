@@ -3,6 +3,7 @@ class MaraiAPI {
     // Default configuration
     this.config = {
       baseUrl: config.baseUrl || 'http://localhost:9605',
+      secureUrl: config.secureUrl || 'https://marai.cloudflare-avatar-id-1.site',
       timeout: config.timeout || 10000,
       defaultHeaders: {
         'Content-Type': 'application/json',
@@ -11,14 +12,18 @@ class MaraiAPI {
     };
 
     // Detect environment and adjust base URL if needed
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-      this.config.baseUrl = config.secureUrl || this.config.baseUrl.replace('http:', 'https:');
-    }
+    // if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    //   this.config.baseUrl = config.secureUrl || this.config.baseUrl.replace('http:', 'https:');
+    // }
   }
 
   // Configuration getters
   getBaseUrl() {
-    return this.config.baseUrl;
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      return this.config.secureUrl;
+    } else {
+      return this.config.baseUrl;
+    }
   }
 
   setAuthToken(token) {

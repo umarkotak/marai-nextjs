@@ -8,8 +8,11 @@ import {
   Command,
   Frame,
   GalleryVerticalEnd,
+  HomeIcon,
   Map,
+  MicIcon,
   PieChart,
+  ServerIcon,
   Settings2,
   SquareTerminal,
 } from "lucide-react"
@@ -40,17 +43,17 @@ const data = {
     },
   ],
   navMain: [
-    {
-      title: "Tasks",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        { title: "Create", url: "/tasks/create", },
-        { title: "List", url: "/tasks", },
-        { title: "Recorder", url: "/tasks/recorder", },
-      ],
-    },
+    // {
+    //   title: "Tasks",
+    //   url: "#",
+    //   icon: SquareTerminal,
+    //   isActive: true,
+    //   items: [
+    //     { title: "Create", url: "/tasks/create", },
+    //     { title: "List", url: "/tasks", },
+    //     { title: "Recorder", url: "/tasks/recorder", },
+    //   ],
+    // },
     // {
     //   title: "Settings",
     //   url: "#",
@@ -65,21 +68,10 @@ const data = {
     // },
   ],
   projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
+    { name: "Home", url: "/home", icon: HomeIcon },
+    { name: "Tasks", url: "/tasks", icon: Frame },
+    { name: "Recorder", url: "/tasks/recorder", icon: MicIcon },
+    { name: "Server Info", url: "/server_info", icon: ServerIcon },
   ],
 }
 
@@ -123,7 +115,7 @@ export function AppSidebar({ ...props }) {
         <TeamSwitcher products={data.products} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        {/* <NavMain items={data.navMain} /> */}
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>

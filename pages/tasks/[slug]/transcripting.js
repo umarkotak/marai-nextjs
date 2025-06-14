@@ -19,6 +19,9 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
+var OLLAMA_HOST = "https://marllma.cloudflare-avatar-id-1.site"
+// var OLLAMA_HOST = "http://127.0.0.1:11434"
+
 export default function TaskTranscripting() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -147,7 +150,7 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
   const [conversationHistory, setConversationHistory] = useState([]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const ollama = new Ollama({ host: 'http://127.0.0.1:11434' })
+  const ollama = new Ollama({ host: OLLAMA_HOST })
 
   // Generate storage key based on slug
   const getStorageKey = () => `chat_${slug}`;
