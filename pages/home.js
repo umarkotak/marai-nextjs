@@ -59,7 +59,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 m-[-8px] ">
       {/* Header */}
-      <header className="border-b border-white/10 backdrop-blur-sm">
+      {/* <header className="border-b border-white/10 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-2">
@@ -87,7 +87,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
@@ -105,14 +105,18 @@ export default function Home() {
               Create multilingual content that captivates audiences worldwide.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 text-lg">
-                Start Free Trial
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg">
-                Watch Demo
-                <Play className="ml-2 w-5 h-5" />
-              </Button>
+              <Link href="/login">
+                <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 text-lg">
+                  Sign In To Try
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
+              <Link href="https://www.youtube.com/watch?v=aqNEBDfR5Z4" target='_blank'>
+                <Button size="lg" variant="outline" className="border-white/20 px-8 py-4 text-lg">
+                  Watch Demo
+                  <Play className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
             </div>
 
             {/* Stats */}
@@ -239,11 +243,13 @@ export default function Home() {
             Join thousands of creators who trust MarAI for their dubbing and transcription needs
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 text-lg">
-              Start Free Trial
-              <CheckCircle className="ml-2 w-5 h-5" />
-            </Button>
-            <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg">
+            <Link href="/login">
+              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 text-lg">
+                Start Free Trial
+                <CheckCircle className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+            <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg" disabled>
               Contact Sales
             </Button>
           </div>

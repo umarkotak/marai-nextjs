@@ -19,8 +19,8 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
-var OLLAMA_HOST = "https://marllma.cloudflare-avatar-id-1.site"
-// var OLLAMA_HOST = "http://127.0.0.1:11434"
+// var OLLAMA_HOST = "https://marllma.cloudflare-avatar-id-1.site"
+var OLLAMA_HOST = "http://127.0.0.1:11434"
 
 export default function TaskTranscripting() {
   const router = useRouter()
