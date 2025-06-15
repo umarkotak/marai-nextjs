@@ -106,6 +106,8 @@ export function AppSidebar({ ...props }) {
     getUserData()
     if (pathname?.includes("transcripting")) {
       setOpen(false)
+    } else {
+      setOpen(true)
     }
   }, [pathname])
 

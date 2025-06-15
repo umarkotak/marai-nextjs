@@ -94,7 +94,7 @@ export default function TaskList() {
               <TableHead>Updated</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Progress</TableHead>
-              <TableHead>Action</TableHead>
+              <TableHead className="text-center">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -226,7 +226,7 @@ function TaskRow({oneTask, getTaskList}) {
       <TableCell>
         <Progress value={taskStatus?.task_progress_info?.progress_percent * 100} className="w-full" />
       </TableCell>
-      <TableCell>
+      <TableCell className="w-1">
         <div className="flex gap-1">
           <Sheet>
             <SheetTrigger><Button size="icon_6"><InfoIcon /></Button></SheetTrigger>
@@ -300,8 +300,7 @@ function TaskRow({oneTask, getTaskList}) {
           <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "auto_dubbing" ? "dubbing" : "transcripting"}`}>
             <Button size="icon_6"><Pencil /></Button>
           </Link>
-          <Button size="icon_6" onClick={() => deleteTask()}><Trash /></Button>
-          {/* <DropdownMenu>
+          <DropdownMenu>
             <DropdownMenuTrigger>
               <Button size="icon_6"><MoreHorizontal /></Button>
             </DropdownMenuTrigger>
@@ -309,14 +308,15 @@ function TaskRow({oneTask, getTaskList}) {
               {taskStatus?.task_progress_info?.status !== "completed" && taskStatus?.is_running === false &&
                 <DropdownMenuItem onClick={() => processTask()}>Continue Process</DropdownMenuItem>
               }
-              <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "auto_dubbing" ? "dubbing" : "transcripting"}`}>
+              {/* <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "auto_dubbing" ? "dubbing" : "transcripting"}`}>
                 <DropdownMenuItem>Edit</DropdownMenuItem>
-              </Link>
-              <DropdownMenuItem onClick={() => deleteTask()}>
+              </Link> */}
+              {/* <DropdownMenuItem onClick={() => deleteTask()}>
                 Delete
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuContent>
-          </DropdownMenu> */}
+          </DropdownMenu>
+          <Button size="icon_6" onClick={() => deleteTask()}><Trash /></Button>
         </div>
       </TableCell>
     </TableRow>

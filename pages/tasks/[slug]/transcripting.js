@@ -92,7 +92,7 @@ export default function TaskTranscripting() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col gap-2 w-full justify-between h-[calc(100vh-74px)]">
+      <div className="flex flex-col gap-2 w-full justify-between">
         <div className="flex-1 grid grid-cols-12 gap-x-2">
           <div className="col-span-4">
             <div className="flex justify-between items-center mb-2">
@@ -104,7 +104,7 @@ export default function TaskTranscripting() {
                 <Button size="icon_7" onClick={() => {}}><SettingsIcon /></Button>
               </div>
             </div>
-            <div className="flex flex-col gap-2 font-mono h-[calc(100vh-375px)] overflow-auto">
+            <div className="flex flex-col gap-2 font-mono h-[calc(100vh-370px)] overflow-auto">
               {transcriptInfo?.transcript?.transcript_lines?.map((transcriptLine) => (
                 <div
                   key={`transcript-segment-${transcriptLine.id}`}
@@ -122,7 +122,7 @@ export default function TaskTranscripting() {
           </div>
 
           <div className="col-span-8">
-            <div className="border h-[calc(100vh-340px)] overflow-auto">
+            <div className="border h-[calc(100vh-330px)] overflow-auto">
               <ChatApp
                 taskDetail={taskDetail}
                 transcriptInfo={transcriptInfo}
@@ -132,7 +132,7 @@ export default function TaskTranscripting() {
           </div>
         </div>
 
-        <div className={`flex-none transition-all ${open ? "w-[calc(100vw-240px)]" : "w-[calc(100vw-60px)]"}`}>
+        <div className={`flex-none transition-all ${open ? "w-[calc(100vw-240px)]" : "w-[calc(100vw-65px)]"}`}>
           <TranscriptTimeline
             taskDetail={taskDetail}
             transcriptInfo={transcriptInfo}
