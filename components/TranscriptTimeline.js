@@ -39,6 +39,7 @@ const TranscriptTimeline = ({
           endTime: segment.end_at_ms,
           waveform: generateWaveform(150),
           name: segment?.speaker,
+          speaker: segment?.speaker,
           value: segment.value,
           transcript_line: segment,
         }))
@@ -629,6 +630,7 @@ const TranscriptTimeline = ({
         </div>
         <div className="flex gap-0.5 w-full p-2">
           <div className="flex items-center text-sm">
+            {activeSegment?.speaker?.includes("SPEAKER") && activeSegment?.speaker + ": "}
             {activeSegment?.value}
           </div>
         </div>

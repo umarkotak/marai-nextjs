@@ -112,6 +112,9 @@ export default function TaskTranscripting() {
                   onClick={() => setActiveTranscriptLine(transcriptLine)}
                 >
                   <span className="mr-2 bg-background p-0.5">{transcriptLine?.start_at?.substr(3).slice(0,-4)}</span>
+                  { transcriptLine?.speaker?.includes("SPEAKER") &&
+                    <span className="mr-2 bg-background p-0.5">{transcriptLine?.speaker}</span>
+                  }
                   <span>{transcriptLine?.value}</span>
                 </div>
               ))}
