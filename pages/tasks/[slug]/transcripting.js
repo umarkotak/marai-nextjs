@@ -19,8 +19,8 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
-// var OLLAMA_HOST = "https://marllma.cloudflare-avatar-id-1.site"
-var OLLAMA_HOST = "http://127.0.0.1:11434"
+var OLLAMA_HOST = "https://marllma.cloudflare-avatar-id-1.site"
+// var OLLAMA_HOST = "http://127.0.0.1:11434"
 
 export default function TaskTranscripting() {
   const router = useRouter()
@@ -316,7 +316,7 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
 
       const errorMessage = {
         id: Date.now() + 1,
-        text: "Maaf, terjadi kesalahan saat memproses permintaan Anda. Pastikan Ollama server berjalan di http://127.0.0.1:11434",
+        text: `Maaf, terjadi kesalahan saat memproses permintaan Anda. Pastikan Ollama server berjalan di ${OLLAMA_HOST}`,
         sender: "bot",
         timestamp: new Date(),
         show: true
