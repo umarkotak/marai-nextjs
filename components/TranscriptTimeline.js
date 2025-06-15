@@ -9,6 +9,8 @@ import { Textarea } from './ui/textarea';
 const TranscriptTimeline = ({
   taskDetail,
   transcriptInfo,
+  activeTranscriptLine,
+  setActiveTranscriptLine,
 }) => {
   // Single audio reference for the main wav file
   const mainAudioRef = useRef(null);
@@ -38,6 +40,7 @@ const TranscriptTimeline = ({
           waveform: generateWaveform(150),
           name: segment?.speaker,
           value: segment.value,
+          transcript_line: segment,
         }))
       })
 
@@ -48,10 +51,22 @@ const TranscriptTimeline = ({
         loadMainAudio(tempTranscriptInfo.wav_url);
       }
 
+      setCurrentTime(0)
+
     } catch(e) {
       toast.error(`Error: ${e}`)
     }
   }
+
+  useEffect(() => {
+    const segmentStartTime = activeTranscriptLine.start_at_ms;
+    setCurrentTime(segmentStartTime);
+
+    // Seek audio to segment start
+    if (mainAudioRef.current && audioLoaded) {
+      mainAudioRef.current.currentTime = segmentStartTime / 1000;
+    }
+  }, [activeTranscriptLine])
 
   // Load the main audio file
   const loadMainAudio = useCallback((audioUrl) => {
@@ -130,12 +145,25 @@ const TranscriptTimeline = ({
     return Math.round(pixels / pixelsPerMs);
   }, [duration, zoom]);
 
-  // Improved time formatting function
+  // Also improve the formatTime function for better readability at different scales:
   const formatTime = (ms) => {
     const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    const milliseconds = Math.floor((ms % 1000) / 10); // Convert to two decimal places (centiseconds)
+    const milliseconds = Math.floor((ms % 1000) / 10);
+
+    // For durations over 1 hour, show hours
+    if (duration >= 3600000) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+    }
+
+    // For durations over 10 minutes, don't show milliseconds to save space
+    if (duration >= 600000) {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Default format with milliseconds
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
   };
 
@@ -243,7 +271,7 @@ const TranscriptTimeline = ({
   // Handle segment click to jump to segment start
   const handleSegmentClick = (segment, e) => {
     e.stopPropagation(); // Prevent timeline click event
-    
+
     const segmentStartTime = segment.startTime;
     setCurrentTime(segmentStartTime);
 
@@ -251,30 +279,102 @@ const TranscriptTimeline = ({
     if (mainAudioRef.current && audioLoaded) {
       mainAudioRef.current.currentTime = segmentStartTime / 1000;
     }
+
+    setActiveTranscriptLine(segment?.transcript_line)
   };
 
   // Generate timeline markers
+  // Generate timeline markers with dynamic intervals based on duration and zoom
   const generateMarkers = () => {
     const markers = [];
-    const interval = 5000; // 5 second intervals
+
+    // Calculate appropriate interval based on duration and zoom
+    const getMarkerInterval = () => {
+      const totalWidth = 800 * zoom;
+      const durationMinutes = duration / 60000;
+
+      // Base intervals in milliseconds
+      const intervals = [
+        100,    // 0.1 seconds
+        250,    // 0.25 seconds
+        500,    // 0.5 seconds
+        1000,   // 1 second
+        2500,   // 2.5 seconds
+        5000,   // 5 seconds
+        10000,  // 10 seconds
+        15000,  // 15 seconds
+        30000,  // 30 seconds
+        60000,  // 1 minute
+        120000, // 2 minutes
+        300000, // 5 minutes
+        600000, // 10 minutes
+        900000, // 15 minutes
+        1800000 // 30 minutes
+      ];
+
+      // Target: approximately one marker every 80-120 pixels
+      const targetPixelsPerMarker = 100;
+      const pixelsPerMs = totalWidth / duration;
+      const targetInterval = targetPixelsPerMarker / pixelsPerMs;
+
+      // Find the best interval
+      let bestInterval = intervals[0];
+      for (const interval of intervals) {
+        if (interval >= targetInterval) {
+          bestInterval = interval;
+          break;
+        }
+        bestInterval = interval;
+      }
+
+      return bestInterval;
+    };
+
+    const interval = getMarkerInterval();
+
+    // Generate major markers
     for (let i = 0; i <= duration; i += interval) {
+      const leftPosition = timeToPixels(i);
+
       markers.push(
         <div
-          key={i}
-          className="absolute top-0 h-3 w-px bg-border"
-          style={{ left: `${timeToPixels(i)}px` }}
+          key={`major-${i}`}
+          className="absolute top-0 h-4 w-px bg-border z-10"
+          style={{ left: `${leftPosition}px` }}
         />
       );
+
       markers.push(
         <div
           key={`label-${i}`}
-          className="absolute top-4 text-[9px] text-muted-foreground font-mono"
-          style={{ left: `${timeToPixels(i)}px` }}
+          className="absolute top-5 text-[10px] text-muted-foreground font-mono whitespace-nowrap select-none"
+          style={{
+            left: `${leftPosition}px`,
+            transform: 'translateX(-50%)'
+          }}
         >
           {formatTime(i)}
         </div>
       );
     }
+
+    // Generate minor markers (subdivisions) if there's enough space
+    const minorInterval = interval / 4;
+    if (timeToPixels(minorInterval) >= 20) { // Only show if at least 20px apart
+      for (let i = minorInterval; i < duration; i += minorInterval) {
+        // Skip positions that would overlap with major markers
+        if (i % interval !== 0) {
+          markers.push(
+            <div
+              key={`minor-${i}`}
+              className="absolute top-1 h-2 w-px bg-border/50 z-5"
+              style={{ left: `${timeToPixels(i)}px` }}
+            />
+          );
+        }
+      }
+    }
+
     return markers;
   };
 
@@ -300,7 +400,7 @@ const TranscriptTimeline = ({
   const activeSegment = getActiveSegment();
 
   return (
-    <div className="w-[calc(100vw-240px)] rounded-lg">
+    <div className="w-full rounded-lg">
       {/* Header */}
       <div className="flex items-center justify-between p-1 bg-accent mb-2">
         <div className="flex items-center gap-2">
@@ -350,13 +450,13 @@ const TranscriptTimeline = ({
           </Button>
 
           <Input
-            className="text-sm font-mono bg-muted px-2 py-0.5 rounded w-32"
+            className="text-sm font-mono bg-muted px-2 py-0.5 rounded w-24"
             value={formatTime(currentTime)}
             readOnly
           />
           <span>/</span>
           <Input
-            className="text-sm font-mono bg-muted px-2 py-0.5 rounded w-32" readOnly
+            className="text-sm font-mono bg-muted px-2 py-0.5 rounded w-24" readOnly
             value={formatTime(duration)}
           />
 
@@ -448,17 +548,23 @@ const TranscriptTimeline = ({
           {/* Timeline Header */}
           <div
             ref={timelineRef}
-            className="relative h-10 cursor-pointer"
+            className="relative h-12 cursor-pointer" // Increased height to accommodate labels
             onClick={handleTimelineClick}
-            style={{ width: `${800 * zoom}px` }}
+            style={{
+              width: `${Math.max(800 * zoom, 1000)}px`, // Minimum width of 1000px
+              minWidth: '100%' // Ensure it fills the container
+            }}
           >
             {generateMarkers()}
 
             {/* Playhead */}
             <div
-              className="absolute top-0 bottom-0 w-[1px] bg-red-500 z-20 pointer-events-none h-4"
+              className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-20 pointer-events-none"
               style={{ left: `${playheadPosition}px` }}
-            ></div>
+            >
+              {/* Playhead indicator triangle */}
+              <div className="absolute -top-1 -left-1 w-0 h-0 border-l-2 border-r-2 border-b-3 border-transparent border-b-red-500"></div>
+            </div>
           </div>
 
           {/* Track Layers */}

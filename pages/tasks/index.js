@@ -34,7 +34,7 @@ import { LoadingSpinner } from "@/components/ui/icon"
 import { useRouter } from "next/router"
 import { toast } from "react-toastify"
 import maraiAPI from "@/apis/maraiAPI"
-import { ImageIcon, InfoIcon, LinkIcon, MicIcon, MoreHorizontal, VideoIcon } from "lucide-react"
+import { ImageIcon, InfoIcon, LinkIcon, MicIcon, MoreHorizontal, Pencil, Trash, VideoIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormatDateConcrete } from "@/lib/datetimeUtils"
@@ -297,7 +297,11 @@ function TaskRow({oneTask, getTaskList}) {
               </SheetDescription>
             </SheetContent>
           </Sheet>
-          <DropdownMenu>
+          <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "auto_dubbing" ? "dubbing" : "transcripting"}`}>
+            <Button size="icon_6"><Pencil /></Button>
+          </Link>
+          <Button size="icon_6" onClick={() => deleteTask()}><Trash /></Button>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger>
               <Button size="icon_6"><MoreHorizontal /></Button>
             </DropdownMenuTrigger>
@@ -312,7 +316,7 @@ function TaskRow({oneTask, getTaskList}) {
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
         </div>
       </TableCell>
     </TableRow>

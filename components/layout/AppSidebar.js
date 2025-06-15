@@ -23,6 +23,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { TeamSwitcher } from "./TeamSwitcher"
 import { NavMain } from "./NavMain"
@@ -79,6 +80,7 @@ export function AppSidebar({ ...props }) {
   const pathname = usePathname()
 
   const [userData, setUserData] = useState({})
+  const { setOpen } = useSidebar()
 
   async function getUserData() {
     try {
@@ -102,6 +104,9 @@ export function AppSidebar({ ...props }) {
 
   useEffect(() => {
     getUserData()
+    if (pathname?.includes("transcripting")) {
+      setOpen(false)
+    }
   }, [pathname])
 
   return (

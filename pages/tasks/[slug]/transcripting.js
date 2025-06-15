@@ -3,7 +3,7 @@ import MovieTimeline from "@/components/MovieTimeline";
 import TranscriptTimeline from "@/components/TranscriptTimeline";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { DownloadIcon, SettingsIcon, Trash2 } from "lucide-react";
+import { ArrowLeftIcon, DownloadIcon, SettingsIcon, Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +18,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { useSidebar } from "@/components/ui/sidebar";
+import Link from "next/link";
 
 var OLLAMA_HOST = "https://marllma.cloudflare-avatar-id-1.site"
 // var OLLAMA_HOST = "http://127.0.0.1:11434"
@@ -27,9 +29,13 @@ export default function TaskTranscripting() {
   const searchParams = useSearchParams()
 
   const [taskDetail, setTaskDetail] = useState({})
-  const [transcriptInfo, setTranscriptInfo] = useState({
-    duration_ms: 60000
-  })
+  const [transcriptInfo, setTranscriptInfo] = useState(
+    {
+      duration_ms: 60000
+    }
+  )
+  const [activeTranscriptLine, setActiveTranscriptLine] = useState({})
+  const { open } = useSidebar()
 
   async function GetTaskDetail(slug) {
     try {
@@ -90,29 +96,30 @@ export default function TaskTranscripting() {
         <div className="flex-1 grid grid-cols-12 gap-x-2">
           <div className="col-span-4">
             <div className="flex justify-between items-center mb-2">
-              <div>Transcript</div>
+              <div className="flex items-center gap-1">
+                <Link href="/tasks"><Button size="icon_7" variant="outline" ><ArrowLeftIcon /></Button></Link>
+                <span>Transcript: {taskDetail?.name}</span>
+              </div>
               <div>
                 <Button size="icon_7" onClick={() => {}}><SettingsIcon /></Button>
               </div>
             </div>
             <div className="flex flex-col gap-2 font-mono h-[calc(100vh-375px)] overflow-auto">
               {transcriptInfo?.transcript?.transcript_lines?.map((transcriptLine) => (
-                <div key={`transcript-segment-${transcriptLine.id}`} className="bg-muted p-2 text-xs">
-                  {transcriptLine?.value}
+                <div
+                  key={`transcript-segment-${transcriptLine.id}`}
+                  className={`bg-muted p-2 text-xs cursor-pointer ${activeTranscriptLine?.id === transcriptLine.id ? "border border-green-500" : ""}`}
+                  onClick={() => setActiveTranscriptLine(transcriptLine)}
+                >
+                  <span className="mr-2 bg-background p-0.5">{transcriptLine?.start_at?.substr(3).slice(0,-4)}</span>
+                  <span>{transcriptLine?.value}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="col-span-8">
-            <div className="flex justify-between items-center">
-              <div className="font-semibold">{taskDetail?.name}</div>
-              <div>
-                <Button size="icon_7"><DownloadIcon /></Button>
-              </div>
-            </div>
-
-            <div className="mt-2 h-[calc(100vh-375px)] overflow-auto">
+            <div className="border h-[calc(100vh-340px)] overflow-auto">
               <ChatApp
                 taskDetail={taskDetail}
                 transcriptInfo={transcriptInfo}
@@ -122,10 +129,12 @@ export default function TaskTranscripting() {
           </div>
         </div>
 
-        <div className="flex-none w-full">
+        <div className={`flex-none transition-all ${open ? "w-[calc(100vw-240px)]" : "w-[calc(100vw-60px)]"}`}>
           <TranscriptTimeline
             taskDetail={taskDetail}
             transcriptInfo={transcriptInfo}
+            activeTranscriptLine={activeTranscriptLine}
+            setActiveTranscriptLine={setActiveTranscriptLine}
           />
         </div>
       </div>
@@ -336,16 +345,6 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
     }
   };
 
-  const formatTime = (date) => {
-    if (!date) { return "" }
-    try {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch(e) {
-      var date = new Date()
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-  };
-
   // Custom markdown components
   const markdownComponents = {
     code({ node, inline, className, children, ...props }) {
@@ -400,7 +399,7 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
   return (
     <div className="flex flex-col h-full relative">
       {/* Chat Header with Delete Button */}
-      <div className="flex justify-between items-center p-2 border-b">
+      <div className="flex justify-between items-center px-2 border-b">
         <span className="text-sm font-medium">Chat Assistant</span>
         <Button
           variant="ghost"
@@ -496,7 +495,7 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
       </div>
 
       {/* Fixed Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 bg-background border-t p-4">
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t p-2">
         <div className="flex gap-2">
           <Input
             ref={inputRef}
@@ -522,4 +521,14 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
       </div>
     </div>
   );
+};
+
+const formatTime = (date) => {
+  if (!date) { return "" }
+  try {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch(e) {
+    var date = new Date()
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
 };
