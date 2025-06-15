@@ -4,7 +4,7 @@ class MaraiAPI {
     this.config = {
       baseUrl: config.baseUrl || 'http://localhost:9605',
       secureUrl: config.secureUrl || 'https://marai.cloudflare-avatar-id-1.site',
-      timeout: config.timeout || 10000,
+      timeout: config.timeout || 3600*1000,
       defaultHeaders: {
         'Content-Type': 'application/json',
         ...config.defaultHeaders
