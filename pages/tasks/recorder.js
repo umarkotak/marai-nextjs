@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, MicOff, Play, Pause, Download, FileText, Loader2, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Mic, MicOff, Play, Pause, Download, FileText, Loader2, XCircle, Eye, EyeOff, Info } from 'lucide-react';
 
 export default function RecordingApp() {
   const [isRecording, setIsRecording] = useState(false);
@@ -17,6 +17,8 @@ export default function RecordingApp() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState('');
   const [wakeLockStatus, setWakeLockStatus] = useState('not-active');
+  const [fileSize, setFileSize] = useState(0);
+  const [audioQuality, setAudioQuality] = useState('medium'); // low, medium, high
 
   // Set default values for source language and speaker number
   const [sourceLanguage, setSourceLanguage] = useState('id');
@@ -27,6 +29,84 @@ export default function RecordingApp() {
   const audioPlayerRef = useRef(null);
   const timerRef = useRef(null);
   const wakeLockRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+  const streamRef = useRef(null);
+
+  // Audio quality presets for WAV
+  const getAudioConstraints = () => {
+    const presets = {
+      low: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 16000,
+        channelCount: 1
+      },
+      medium: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 22050,
+        channelCount: 1
+      },
+      high: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100,
+        channelCount: 2
+      }
+    };
+    return presets[audioQuality];
+  };
+
+  // Waveform visualization
+  const drawWaveform = useCallback(() => {
+    if (!analyserRef.current || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const canvasContext = canvas.getContext('2d');
+    const analyser = analyserRef.current;
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const draw = () => {
+      if (!isRecording) return;
+
+      analyser.getByteTimeDomainData(dataArray);
+
+      canvasContext.fillStyle = 'rgb(30, 30, 30)';
+      canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+
+      canvasContext.lineWidth = 2;
+      canvasContext.strokeStyle = 'rgb(59, 130, 246)'; // Blue color
+      canvasContext.beginPath();
+
+      const sliceWidth = (canvas.width * 1.0) / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+
+        if (i === 0) {
+          canvasContext.moveTo(x, y);
+        } else {
+          canvasContext.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+      }
+
+      canvasContext.lineTo(canvas.width, canvas.height / 2);
+      canvasContext.stroke();
+
+      animationRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+  }, [isRecording]);
 
   // Screen Wake Lock functionality
   const requestWakeLock = useCallback(async () => {
@@ -83,26 +163,49 @@ export default function RecordingApp() {
       if (wakeLockRef.current) {
         wakeLockRef.current.release();
       }
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
   }, []);
 
   const startRecording = useCallback(async () => {
     try {
       setError('');
+      setFileSize(0);
 
       // Request wake lock before starting recording
       await requestWakeLock();
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
+      const constraints = getAudioConstraints();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+      streamRef.current = stream;
+
+      // Set up audio context for waveform visualization
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+
+      analyserRef.current.minDecibels = -90;
+      analyserRef.current.maxDecibels = -10;
+      analyserRef.current.smoothingTimeConstant = 0.85;
+      analyserRef.current.fftSize = 2048;
+
+      // Use WebM for recording but we'll convert to WAV later
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = '';
+          }
         }
-      });
+      }
 
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        ...(mimeType && { mimeType })
       });
 
       mediaRecorderRef.current = mediaRecorder;
@@ -115,14 +218,27 @@ export default function RecordingApp() {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         setRecordedBlob(blob);
+        setFileSize(blob.size);
         stream.getTracks().forEach(track => track.stop());
+        
+        // Clean up audio context
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
       };
 
       mediaRecorder.start(100);
       setIsRecording(true);
       setRecordingTime(0);
+
+      // Start waveform visualization
+      drawWaveform();
 
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
@@ -133,13 +249,18 @@ export default function RecordingApp() {
       console.error(err);
       await releaseWakeLock();
     }
-  }, [requestWakeLock, releaseWakeLock]);
+  }, [requestWakeLock, releaseWakeLock, audioQuality, drawWaveform]);
 
   const stopRecording = useCallback(async () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       clearInterval(timerRef.current);
+
+      // Stop all tracks
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
 
       // Release wake lock when recording stops
       await releaseWakeLock();
@@ -165,15 +286,24 @@ export default function RecordingApp() {
     }
   }, [recordedBlob, isPlaying]);
 
-  // Utility function to convert audio buffer to WAV
-  const audioBufferToWav = (buffer) => {
-    const length = buffer.length;
-    const numberOfChannels = buffer.numberOfChannels;
-    const sampleRate = buffer.sampleRate;
+  // Optimized WAV conversion with configurable quality
+  const audioBufferToWav = (buffer, targetSampleRate = null, targetChannels = null) => {
+    const originalSampleRate = buffer.sampleRate;
+    const originalChannels = buffer.numberOfChannels;
+    
+    // Use specified sample rate and channels, or defaults based on quality
+    const finalSampleRate = targetSampleRate || (audioQuality === 'low' ? 16000 : 
+                                          audioQuality === 'medium' ? 22050 : 44100);
+    const finalChannels = targetChannels || (audioQuality === 'high' ? Math.min(2, originalChannels) : 1);
+    
+    // Calculate downsample ratio
+    const downsampleRatio = originalSampleRate / finalSampleRate;
+    const length = Math.floor(buffer.length / downsampleRatio);
+    
     const bitsPerSample = 16;
     const bytesPerSample = bitsPerSample / 8;
-    const blockAlign = numberOfChannels * bytesPerSample;
-    const byteRate = sampleRate * blockAlign;
+    const blockAlign = finalChannels * bytesPerSample;
+    const byteRate = finalSampleRate * blockAlign;
     const dataSize = length * blockAlign;
     const bufferSize = 44 + dataSize;
 
@@ -193,19 +323,28 @@ export default function RecordingApp() {
     writeString(12, 'fmt ');
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
-    view.setUint16(22, numberOfChannels, true);
-    view.setUint32(24, sampleRate, true);
+    view.setUint16(22, finalChannels, true);
+    view.setUint32(24, finalSampleRate, true);
     view.setUint32(28, byteRate, true);
     view.setUint16(32, blockAlign, true);
     view.setUint16(34, bitsPerSample, true);
     writeString(36, 'data');
     view.setUint32(40, dataSize, true);
 
-    // Convert float samples to 16-bit PCM
+    // Convert and downsample audio data
     let offset = 44;
     for (let i = 0; i < length; i++) {
-      for (let channel = 0; channel < numberOfChannels; channel++) {
-        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+      const sourceIndex = Math.floor(i * downsampleRatio);
+      for (let channel = 0; channel < finalChannels; channel++) {
+        let sample;
+        if (channel < originalChannels) {
+          sample = buffer.getChannelData(channel)[sourceIndex] || 0;
+        } else {
+          // If we need stereo but only have mono, duplicate the channel
+          sample = buffer.getChannelData(0)[sourceIndex] || 0;
+        }
+        
+        sample = Math.max(-1, Math.min(1, sample));
         view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
         offset += 2;
       }
@@ -218,11 +357,15 @@ export default function RecordingApp() {
     if (!recordedBlob) return;
 
     try {
+      // Always convert to optimized WAV
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const arrayBuffer = await recordedBlob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const wavBuffer = audioBufferToWav(audioBuffer);
       const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+
+      // Update file size display with WAV size
+      setFileSize(wavBlob.size);
 
       const url = URL.createObjectURL(wavBlob);
       const a = document.createElement('a');
@@ -237,7 +380,7 @@ export default function RecordingApp() {
       setError('Failed to download recording.');
       console.error(err);
     }
-  }, [recordedBlob]);
+  }, [recordedBlob, audioQuality]);
 
   const transcribeRecording = useCallback(async () => {
     if (!recordedBlob) return;
@@ -246,16 +389,16 @@ export default function RecordingApp() {
       setIsTranscribing(true);
       setError('');
 
+      // Convert to WAV for transcription
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const arrayBuffer = await recordedBlob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const wavBuffer = audioBufferToWav(audioBuffer);
-      const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      const finalBlob = new Blob([wavBuffer], { type: 'audio/wav' });
 
       const formData = new FormData();
       formData.append('task_name', `recording-${new Date().toISOString()}`);
-      formData.append('audio_file', wavBlob, `recording-${new Date().toISOString()}.wav`);
-      formData.append('task_type', 'basic_transcript');
+      formData.append('audio_file', finalBlob, `recording-${new Date().toISOString()}.wav`);
       formData.append('source_language', sourceLanguage);
       formData.append('speaker_number', speakerNumber);
 
@@ -269,12 +412,20 @@ export default function RecordingApp() {
     } finally {
       setIsTranscribing(false);
     }
-  }, [recordedBlob, sourceLanguage, speakerNumber]);
+  }, [recordedBlob, sourceLanguage, speakerNumber, audioQuality]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const getWakeLockStatusColor = () => {
@@ -297,6 +448,15 @@ export default function RecordingApp() {
     }
   };
 
+  const getQualityDescription = () => {
+    const descriptions = {
+      low: 'Low (16kHz, Mono) - Smallest files, good for speech',
+      medium: 'Medium (22kHz, Mono) - Balanced quality and size',
+      high: 'High (44kHz, Stereo) - Best quality, larger files'
+    };
+    return descriptions[audioQuality];
+  };
+
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -306,7 +466,7 @@ export default function RecordingApp() {
               Audio Recorder
             </CardTitle>
             <CardDescription className="text-lg">
-              Record, play, download, and transcribe your audio
+              Record, play, download WAV files, and transcribe your audio
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -321,6 +481,25 @@ export default function RecordingApp() {
               <span className={getWakeLockStatusColor()}>
                 {getWakeLockStatusText()}
               </span>
+            </div>
+
+            {/* Audio Quality Settings */}
+            <div className="space-y-2">
+              <Label htmlFor="audio_quality">Audio Quality (WAV Output)</Label>
+              <Select value={audioQuality} onValueChange={setAudioQuality} disabled={isRecording}>
+                <SelectTrigger id="audio_quality">
+                  <SelectValue placeholder="Select quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low Quality (Smallest files)</SelectItem>
+                  <SelectItem value="medium">Medium Quality (Recommended)</SelectItem>
+                  <SelectItem value="high">High Quality (Largest files)</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-start space-x-2 text-sm text-gray-600">
+                <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{getQualityDescription()}</span>
+              </div>
             </div>
 
             <div className="text-center space-y-4">
@@ -347,6 +526,22 @@ export default function RecordingApp() {
                 </div>
               )}
             </div>
+
+            {/* Waveform Display */}
+            {isRecording && (
+              <div className="space-y-2">
+                <Label>Live Waveform</Label>
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <canvas
+                    ref={canvasRef}
+                    width={600}
+                    height={150}
+                    className="w-full h-24 border rounded bg-gray-900"
+                    style={{ maxWidth: '100%' }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Transcription Options */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
@@ -379,9 +574,20 @@ export default function RecordingApp() {
               <>
                 <Separator />
                 <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-center">
-                    Recording Ready
-                  </h3>
+                  <div className="text-center">
+                    <h3 className="text-xl font-semibold mb-2">
+                      Recording Ready
+                    </h3>
+                    {/* File Size Display */}
+                    <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 mb-4">
+                      <Badge variant="outline" className="px-3 py-1">
+                        WAV Size: {formatFileSize(fileSize)}
+                      </Badge>
+                      <Badge variant="outline" className="px-3 py-1">
+                        Duration: {formatTime(recordingTime)}
+                      </Badge>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Button
                       onClick={playRecording}
@@ -399,7 +605,8 @@ export default function RecordingApp() {
                       variant="outline"
                       className="flex items-center justify-center space-x-2 py-6"
                     >
-                      <Download className="h-5 w-5" /><span>Download WAV</span>
+                      <Download className="h-5 w-5" />
+                      <span>Download WAV</span>
                     </Button>
                     <Button
                       onClick={transcribeRecording}

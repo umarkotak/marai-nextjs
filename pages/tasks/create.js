@@ -394,6 +394,7 @@ function FormTranscripting() {
           type="number"
           onChange={(e) => {handleChange("speaker_number", e.target.value)}}
           value={createParams.speaker_number}
+          min="0"
         />
       </div>
 
@@ -589,6 +590,7 @@ function FormDubbing() {
           type="number"
           onChange={(e) => {handleChange("speaker_number", e.target.value)}}
           value={createParams.speaker_number}
+          min="0"
         />
       </div>
       <div className="col-span-12 flex justify-end">
