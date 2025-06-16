@@ -30,6 +30,24 @@ const MovieTimeline = ({
       if (!tempDubbingInfo.translated_transcripts?.id) { return }
 
       tmpTrackLayers.push({
+        id: "instrument",
+        name: "instrument",
+        color: 'hsl(0 72.2% 50.6%)', // red-500
+        volume: 1,
+        segments: [
+          {
+            id: "instrument",
+            startTime: 0,
+            endTime: tempDubbingInfo?.duration_ms,
+            waveform: generateWaveform(150),
+            name: "instrument",
+            value: "",
+            audioUrl: tempDubbingInfo?.audio_instrument_url,
+          }
+        ]
+      })
+
+      tmpTrackLayers.push({
         id: tempDubbingInfo.translated_transcripts?.id,
         name: tempDubbingInfo.translated_transcripts?.speaker,
         color: 'hsl(0 72.2% 50.6%)', // red-500

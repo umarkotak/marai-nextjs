@@ -297,7 +297,7 @@ function TaskRow({oneTask, getTaskList}) {
               </SheetDescription>
             </SheetContent>
           </Sheet>
-          <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "auto_dubbing" ? "dubbing" : "transcripting"}`}>
+          <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "dubbing" ? "dubbing" : "transcripting"}`}>
             <Button size="icon_6"><Pencil /></Button>
           </Link>
           <DropdownMenu>
@@ -305,9 +305,10 @@ function TaskRow({oneTask, getTaskList}) {
               <Button size="icon_6"><MoreHorizontal /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              {taskStatus?.task_progress_info?.status !== "completed" && taskStatus?.is_running === false &&
-                <DropdownMenuItem onClick={() => processTask()}>Continue Process</DropdownMenuItem>
-              }
+              <DropdownMenuItem
+                onClick={() => processTask()}
+                disabled={!(taskStatus?.task_progress_info?.status !== "completed" && taskStatus?.is_running === false)}
+              >Continue Process</DropdownMenuItem>
               {/* <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "auto_dubbing" ? "dubbing" : "transcripting"}`}>
                 <DropdownMenuItem>Edit</DropdownMenuItem>
               </Link> */}
