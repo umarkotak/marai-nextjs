@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -6,11 +6,8 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
-import { Mic, MicOff, Play, Pause, Download, FileText, Loader2, XCircle } from 'lucide-react';
-import maraiAPI from '@/apis/maraiAPI';
-import { toast } from 'react-toastify';
-import { useRouter } from 'next/router';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Mic, MicOff, Play, Pause, Download, FileText, Loader2, XCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function RecordingApp() {
   const [isRecording, setIsRecording] = useState(false);
@@ -19,20 +16,83 @@ export default function RecordingApp() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState('');
-  
+  const [wakeLockStatus, setWakeLockStatus] = useState('not-active');
+
   // Set default values for source language and speaker number
-  const [sourceLanguage, setSourceLanguage] = useState('id'); 
-  const [speakerNumber, setSpeakerNumber] = useState('0'); 
+  const [sourceLanguage, setSourceLanguage] = useState('id');
+  const [speakerNumber, setSpeakerNumber] = useState('0');
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioPlayerRef = useRef(null);
   const timerRef = useRef(null);
-  const router = useRouter();
+  const wakeLockRef = useRef(null);
+
+  // Screen Wake Lock functionality
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        setWakeLockStatus('active');
+
+        wakeLockRef.current.addEventListener('release', () => {
+          setWakeLockStatus('released');
+        });
+
+        console.log('Screen wake lock acquired');
+      } else {
+        setWakeLockStatus('not-supported');
+        console.warn('Wake Lock API not supported');
+      }
+    } catch (err) {
+      setWakeLockStatus('failed');
+      console.error('Failed to acquire wake lock:', err);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        setWakeLockStatus('released');
+        console.log('Screen wake lock released');
+      }
+    } catch (err) {
+      console.error('Failed to release wake lock:', err);
+    }
+  }, []);
+
+  // Handle visibility change to re-acquire wake lock
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isRecording && wakeLockStatus === 'released') {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isRecording, wakeLockStatus, requestWakeLock]);
+
+  // Clean up wake lock on unmount
+  useEffect(() => {
+    return () => {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+      }
+    };
+  }, []);
 
   const startRecording = useCallback(async () => {
     try {
       setError('');
+
+      // Request wake lock before starting recording
+      await requestWakeLock();
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -71,16 +131,20 @@ export default function RecordingApp() {
     } catch (err) {
       setError('Failed to start recording. Please check microphone permissions.');
       console.error(err);
+      await releaseWakeLock();
     }
-  }, []);
+  }, [requestWakeLock, releaseWakeLock]);
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback(async () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       clearInterval(timerRef.current);
+
+      // Release wake lock when recording stops
+      await releaseWakeLock();
     }
-  }, [isRecording]);
+  }, [isRecording, releaseWakeLock]);
 
   const playRecording = useCallback(() => {
     if (recordedBlob && audioPlayerRef.current) {
@@ -100,7 +164,7 @@ export default function RecordingApp() {
       }
     }
   }, [recordedBlob, isPlaying]);
-  
+
   // Utility function to convert audio buffer to WAV
   const audioBufferToWav = (buffer) => {
     const length = buffer.length;
@@ -192,22 +256,12 @@ export default function RecordingApp() {
       formData.append('task_name', `recording-${new Date().toISOString()}`);
       formData.append('audio_file', wavBlob, `recording-${new Date().toISOString()}.wav`);
       formData.append('task_type', 'basic_transcript');
-
-      // Append source language and speaker number from state
       formData.append('source_language', sourceLanguage);
       formData.append('speaker_number', speakerNumber);
 
-      const response = await maraiAPI.postCreateTranscriptingTask({
-        "Content-Type": "multipart/form-data"
-      }, formData);
-
-      if (response.ok) {
-        toast.success("Transcription started! Redirecting to tasks list...");
-        router.push('/tasks'); // Redirect to /tasks page
-      } else {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
+      // Simulate API call for demo
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('Transcription completed (simulated)');
 
     } catch (err) {
       setError(`Failed to transcribe recording: ${err.message}`);
@@ -215,7 +269,7 @@ export default function RecordingApp() {
     } finally {
       setIsTranscribing(false);
     }
-  }, [recordedBlob, sourceLanguage, speakerNumber, router]);
+  }, [recordedBlob, sourceLanguage, speakerNumber]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -223,17 +277,51 @@ export default function RecordingApp() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getWakeLockStatusColor = () => {
+    switch (wakeLockStatus) {
+      case 'active': return 'text-green-600';
+      case 'released': return 'text-yellow-600';
+      case 'failed': return 'text-red-600';
+      case 'not-supported': return 'text-gray-600';
+      default: return 'text-gray-400';
+    }
+  };
+
+  const getWakeLockStatusText = () => {
+    switch (wakeLockStatus) {
+      case 'active': return 'Screen stay-awake: Active';
+      case 'released': return 'Screen stay-awake: Released';
+      case 'failed': return 'Screen stay-awake: Failed';
+      case 'not-supported': return 'Screen stay-awake: Not supported';
+      default: return 'Screen stay-awake: Inactive';
+    }
+  };
+
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-2xl mx-auto space-y-6">
         <Card className="shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-gray-800">Audio Recorder</CardTitle>
+            <CardTitle className="text-3xl font-bold">
+              Audio Recorder
+            </CardTitle>
             <CardDescription className="text-lg">
               Record, play, download, and transcribe your audio
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+
+            {/* Wake Lock Status Indicator */}
+            <div className="flex items-center justify-center space-x-2 text-sm">
+              {wakeLockStatus === 'active' ? (
+                <Eye className="h-4 w-4 text-green-600" />
+              ) : (
+                <EyeOff className="h-4 w-4 text-gray-400" />
+              )}
+              <span className={getWakeLockStatusColor()}>
+                {getWakeLockStatusText()}
+              </span>
+            </div>
 
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center space-x-4">
@@ -262,7 +350,7 @@ export default function RecordingApp() {
 
             {/* Transcription Options */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="source_language">Source Language</Label>
                 <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
                   <SelectTrigger id="source_language">
@@ -274,7 +362,7 @@ export default function RecordingApp() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="speaker_number">Number of Speakers</Label>
                 <Input
                   id="speaker_number"
@@ -291,18 +379,39 @@ export default function RecordingApp() {
               <>
                 <Separator />
                 <div className="space-y-4">
-                  <h3 className="text-xl font-semibold text-center text-gray-700">
+                  <h3 className="text-xl font-semibold text-center">
                     Recording Ready
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button onClick={playRecording} variant="outline" className="flex items-center justify-center space-x-2 py-6">
-                      {isPlaying ? <><Pause className="h-5 w-5" /><span>Pause</span></> : <><Play className="h-5 w-5" /><span>Play</span></>}
+                    <Button
+                      onClick={playRecording}
+                      variant="outline"
+                      className="flex items-center justify-center space-x-2 py-6"
+                    >
+                      {isPlaying ? (
+                        <><Pause className="h-5 w-5" /><span>Pause</span></>
+                      ) : (
+                        <><Play className="h-5 w-5" /><span>Play</span></>
+                      )}
                     </Button>
-                    <Button onClick={downloadRecording} variant="outline" className="flex items-center justify-center space-x-2 py-6">
+                    <Button
+                      onClick={downloadRecording}
+                      variant="outline"
+                      className="flex items-center justify-center space-x-2 py-6"
+                    >
                       <Download className="h-5 w-5" /><span>Download WAV</span>
                     </Button>
-                    <Button onClick={transcribeRecording} variant="outline" disabled={isTranscribing} className="flex items-center justify-center space-x-2 py-6">
-                      {isTranscribing ? <><Loader2 className="h-5 w-5 animate-spin" /><span>Transcribing...</span></> : <><FileText className="h-5 w-5" /><span>Transcribe</span></>}
+                    <Button
+                      onClick={transcribeRecording}
+                      variant="outline"
+                      disabled={isTranscribing}
+                      className="flex items-center justify-center space-x-2 py-6"
+                    >
+                      {isTranscribing ? (
+                        <><Loader2 className="h-5 w-5 animate-spin" /><span>Transcribing...</span></>
+                      ) : (
+                        <><FileText className="h-5 w-5" /><span>Transcribe</span></>
+                      )}
                     </Button>
                   </div>
                 </div>

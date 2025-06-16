@@ -33,6 +33,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import maraiAPI from "@/apis/maraiAPI"
 import { toast } from "react-toastify"
+import { useRouter } from "next/router"
 
 // This is sample data.
 const data = {
@@ -78,13 +79,18 @@ const data = {
 
 export function AppSidebar({ ...props }) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const [userData, setUserData] = useState({})
   const { setOpen } = useSidebar()
 
-  async function getUserData() {
+  async function getUserData(pn) {
     try {
-      if (maraiAPI.getAuthToken() === "") { return }
+      if (maraiAPI.getAuthToken() === "") {
+        if (pn?.includes("tasks")) { router.push("/login") }
+
+        return
+      }
 
       const response = await maraiAPI.getCheckAuth({}, {})
 
@@ -103,7 +109,7 @@ export function AppSidebar({ ...props }) {
   }
 
   useEffect(() => {
-    getUserData()
+    getUserData(pathname)
     if (pathname?.includes("transcripting")) {
       setOpen(false)
     } else {
