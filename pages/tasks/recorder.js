@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mic, MicOff, Play, Pause, Download, FileText, Loader2, XCircle, Eye, EyeOff, Info } from 'lucide-react';
+import maraiAPI from '@/apis/maraiAPI';
+import { toast } from 'react-toastify';
 
 export default function RecordingApp() {
   const [isRecording, setIsRecording] = useState(false);
@@ -222,7 +224,7 @@ export default function RecordingApp() {
         setRecordedBlob(blob);
         setFileSize(blob.size);
         stream.getTracks().forEach(track => track.stop());
-        
+
         // Clean up audio context
         if (audioContextRef.current) {
           audioContextRef.current.close();
@@ -290,16 +292,16 @@ export default function RecordingApp() {
   const audioBufferToWav = (buffer, targetSampleRate = null, targetChannels = null) => {
     const originalSampleRate = buffer.sampleRate;
     const originalChannels = buffer.numberOfChannels;
-    
+
     // Use specified sample rate and channels, or defaults based on quality
-    const finalSampleRate = targetSampleRate || (audioQuality === 'low' ? 16000 : 
+    const finalSampleRate = targetSampleRate || (audioQuality === 'low' ? 16000 :
                                           audioQuality === 'medium' ? 22050 : 44100);
     const finalChannels = targetChannels || (audioQuality === 'high' ? Math.min(2, originalChannels) : 1);
-    
+
     // Calculate downsample ratio
     const downsampleRatio = originalSampleRate / finalSampleRate;
     const length = Math.floor(buffer.length / downsampleRatio);
-    
+
     const bitsPerSample = 16;
     const bytesPerSample = bitsPerSample / 8;
     const blockAlign = finalChannels * bytesPerSample;
@@ -343,7 +345,7 @@ export default function RecordingApp() {
           // If we need stereo but only have mono, duplicate the channel
           sample = buffer.getChannelData(0)[sourceIndex] || 0;
         }
-        
+
         sample = Math.max(-1, Math.min(1, sample));
         view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
         offset += 2;
@@ -402,15 +404,23 @@ export default function RecordingApp() {
       formData.append('source_language', sourceLanguage);
       formData.append('speaker_number', speakerNumber);
 
-      // Simulate API call for demo
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Transcription completed (simulated)');
+      const response = await maraiAPI.postCreateTranscriptingTask({
+        "Content-Type": "multipart/form-data"
+      }, formData)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        toast.error(`Error: ${errorData.error.internal_error}`)
+        return
+      }
 
     } catch (err) {
       setError(`Failed to transcribe recording: ${err.message}`);
       console.error(err);
     } finally {
       setIsTranscribing(false);
+      toast.success("Create task success!")
+      cleanupPreview()
     }
   }, [recordedBlob, sourceLanguage, speakerNumber, audioQuality]);
 
