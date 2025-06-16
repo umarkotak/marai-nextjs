@@ -17,7 +17,7 @@ const fetchTaskLog = (slug) => {
       // Split the raw text dump into an array of lines.
       const logsArray = rawLogText.split('\n');
       resolve(logsArray);
-    }, 500 + Math.random() * 500);
+    }, 0);
   });
 };
 
@@ -108,7 +108,7 @@ export default function LogViewer ({ slug }) {
           const timer = setTimeout(() => {
               setLogs(prev => [...prev, allLines[currentLine]]);
               setCurrentLine(prev => prev + 1);
-          }, 100 + Math.random() * 200); // Delay between lines
+          }, 0); // Delay between lines
           return () => clearTimeout(timer);
       }
   }, [isLoading, currentLine, allLines]);
@@ -130,7 +130,7 @@ export default function LogViewer ({ slug }) {
     try {
       document.execCommand('copy');
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      // setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy logs: ', err);
     }
