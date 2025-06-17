@@ -1,12 +1,11 @@
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/layout/AppSidebar"
-import { Separator } from "../ui/separator"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "../ui/breadcrumb"
-import { ThemeToggle } from "../theme-toggle"
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "./AppSidebar"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
-export default function DefaultLayout({ children }) {
+export default function AuthLayout({ children }) {
   const pathname = usePathname()
   const [breadcrumb, setBreadcrumb] = useState("")
 

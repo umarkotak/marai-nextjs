@@ -1,20 +1,11 @@
 "use client"
 
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
   BrainIcon,
-  Command,
   Frame,
-  GalleryVerticalEnd,
-  HomeIcon,
-  Map,
+  CircleGauge,
   MicIcon,
-  PieChart,
   ServerIcon,
-  Settings2,
-  SquareTerminal,
 } from "lucide-react"
 
 import {
@@ -70,7 +61,7 @@ const data = {
     // },
   ],
   projects: [
-    { name: "Home", url: "/home", icon: HomeIcon },
+    { name: "Dashboard", url: "/dashboard", icon: CircleGauge },
     { name: "Tasks", url: "/tasks", icon: Frame },
     { name: "Recorder", url: "/tasks/recorder", icon: MicIcon },
     { name: "Server Info", url: "/server_info", icon: ServerIcon },

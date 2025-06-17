@@ -1,3 +1,5 @@
+import Cookies from "js-cookie";
+
 class MaraiAPI {
   constructor(config = {}) {
     // Default configuration
@@ -27,19 +29,16 @@ class MaraiAPI {
   }
 
   setAuthToken(token) {
-    localStorage.setItem('MA:AT', token)
+    if (token === "") {
+      Cookies.remove('MAIAT')
+      return
+    }
+    Cookies.set('MAIAT', token)
+    return 
   }
 
   getAuthToken() {
-    try {
-      if (!localStorage || !localStorage.getItem('MA:AT')) {
-        return '';
-      }
-      return localStorage.getItem('MA:AT');
-    } catch (error) {
-      console.warn('Failed to get auth token:', error);
-      return '';
-    }
+    return Cookies.get('MAIAT')
   }
 
   // Core HTTP methods
@@ -62,6 +61,8 @@ class MaraiAPI {
       });
 
       clearTimeout(timeoutId);
+
+      console.log('resp ada =>', this.getAuthToken())
 
       return response
 
@@ -179,7 +180,7 @@ class MaraiAPI {
 // Singleton instance with default configuration
 const maraiAPI = new MaraiAPI({
   timeout: 10000,
-  baseUrl: 'http://localhost:9605',
+  baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
   secureUrl: null,
   defaultHeaders: {
     'Content-Type': 'application/json'
