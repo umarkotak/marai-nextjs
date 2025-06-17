@@ -204,7 +204,7 @@ function TaskRow({oneTask, getTaskList}) {
       </TableCell>
       <TableCell>
         <Avatar className="h-10 w-20 rounded">
-          <AvatarImage src={oneTask.thumbnail_url} alt="thumbnail" />
+          <AvatarImage src={oneTask.thumbnail_url} alt="thumbnail" className="object-scale-down bg-black" />
           <AvatarFallback className="rounded">
             {oneTask?.task_type?.includes("transcript") ? <MicIcon /> : <VideoIcon />}
           </AvatarFallback>

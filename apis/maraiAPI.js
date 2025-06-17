@@ -22,7 +22,7 @@ class MaraiAPI {
   // Configuration getters
   getBaseUrl() {
     if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-      return this.config.secureUrl;
+      return this.config.secureUrl || this.config.baseUrl;
     } else {
       return this.config.baseUrl;
     }
@@ -179,8 +179,8 @@ class MaraiAPI {
 
 // Singleton instance with default configuration
 const maraiAPI = new MaraiAPI({
-  timeout: 10000,
-  baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
+  timeout: 3600000,
+  baseUrl: 'http://localhost:9605',
   secureUrl: null,
   defaultHeaders: {
     'Content-Type': 'application/json'
