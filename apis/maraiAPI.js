@@ -180,7 +180,7 @@ class MaraiAPI {
 // Singleton instance with default configuration
 const maraiAPI = new MaraiAPI({
   timeout: 3600000,
-  baseUrl: 'http://localhost:9605',
+  baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
   secureUrl: null,
   defaultHeaders: {
     'Content-Type': 'application/json'

@@ -38,7 +38,7 @@ export default function Login() {
 
       toast.info("Login sukses!")
 
-      router.push("/home")
+      router.reload()
 
     } catch(e) {
       toast.error(`Error: ${e}`)
@@ -46,7 +46,7 @@ export default function Login() {
   }
 
   return (
-    <div className="mt-4 flex flex-col items-center justify-center">
+    <div className="flex min-h-svh w-full items-center justify-center">
       <Card className="max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-xl flex items-center justify-center gap-2"><LogInIcon/> Login To MarAI</CardTitle>

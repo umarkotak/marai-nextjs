@@ -2,32 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-export default function SystemStatusPage() {
-  const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function SystemStatusPage({ status, error }) {
 
-  useEffect(() => {
-    fetch("https://go-home-server.cloudflare-avatar-id-1.site/go-home-server/system/status")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setStatus(data.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError("Failed to fetch system status.");
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) return <p className="p-4">Loading...</p>;
   if (error) return <p className="p-4 text-red-500">{error}</p>;
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
       <Card>
@@ -82,4 +59,14 @@ export default function SystemStatusPage() {
       </Card>
     </div>
   );
+}
+
+export async function getServerSideProps() {
+  const response = await fetch("https://go-home-server.cloudflare-avatar-id-1.site/go-home-server/system/status")
+  if (response.status !== 200) {
+    return { props: { data: null, error: 'Failed to fetch system status.' }}
+  }
+
+  const data = await response.json()
+  return { props: { status: data.data, error: null } }
 }
