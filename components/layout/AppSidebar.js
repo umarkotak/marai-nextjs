@@ -110,7 +110,7 @@ export function AppSidebar({ ...props }) {
 
   useEffect(() => {
     getUserData(pathname)
-    if (pathname?.includes("transcripting")) {
+    if (pathname?.includes("transcripting") || pathname?.includes("dubbing")) {
       setOpen(false)
     } else {
       setOpen(true)

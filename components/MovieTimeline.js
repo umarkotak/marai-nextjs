@@ -6,6 +6,8 @@ import { toast } from 'react-toastify';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
+var SHOWN_TRACKS_NAME = ["translated"] // translated, original, instrument
+
 const MovieTimeline = ({
   playerState,
   playerRef,
@@ -121,15 +123,6 @@ const MovieTimeline = ({
     const pixelsPerMs = (800 * zoom) / duration;
     return Math.round(pixels / pixelsPerMs);
   }, [duration, zoom]);
-
-  // Format time display
-  const formatTime = (ms) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    const milliseconds = ms % 1000;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
-  };
 
   // Preload audio elements
   const preloadAudio = useCallback((segment, layerVolume) => {
@@ -485,28 +478,122 @@ const MovieTimeline = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  // Format time display
+  const formatTime = (ms) => {
+    if (!ms) { return "" }
+
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = Math.floor((ms % 1000) / 10);
+
+    // For durations over 1 hour, show hours
+    if (duration >= 3600000) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+    }
+
+    // For durations over 10 minutes, don't show milliseconds to save space
+    if (duration >= 600000) {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Default format with milliseconds
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+  };
+
   // Generate timeline markers
+  // Generate timeline markers with dynamic intervals based on duration and zoom
   const generateMarkers = () => {
     const markers = [];
-    const interval = 5000; // 5 second intervals
+
+    // Calculate appropriate interval based on duration and zoom
+    const getMarkerInterval = () => {
+      const totalWidth = 800 * zoom;
+      const durationMinutes = duration / 60000;
+
+      // Base intervals in milliseconds
+      const intervals = [
+        100,    // 0.1 seconds
+        250,    // 0.25 seconds
+        500,    // 0.5 seconds
+        1000,   // 1 second
+        2500,   // 2.5 seconds
+        5000,   // 5 seconds
+        10000,  // 10 seconds
+        15000,  // 15 seconds
+        30000,  // 30 seconds
+        60000,  // 1 minute
+        120000, // 2 minutes
+        300000, // 5 minutes
+        600000, // 10 minutes
+        900000, // 15 minutes
+        1800000 // 30 minutes
+      ];
+
+      // Target: approximately one marker every 80-120 pixels
+      const targetPixelsPerMarker = 100;
+      const pixelsPerMs = totalWidth / duration;
+      const targetInterval = targetPixelsPerMarker / pixelsPerMs;
+
+      // Find the best interval
+      let bestInterval = intervals[0];
+      for (const interval of intervals) {
+        if (interval >= targetInterval) {
+          bestInterval = interval;
+          break;
+        }
+        bestInterval = interval;
+      }
+
+      return bestInterval;
+    };
+
+    const interval = getMarkerInterval();
+
+    // Generate major markers
     for (let i = 0; i <= duration; i += interval) {
+      const leftPosition = timeToPixels(i);
+
       markers.push(
         <div
-          key={i}
-          className="absolute top-0 h-3 w-px bg-border"
-          style={{ left: `${timeToPixels(i)}px` }}
+          key={`major-${i}`}
+          className="absolute top-0 h-4 w-px bg-border z-10"
+          style={{ left: `${leftPosition}px` }}
         />
       );
+
       markers.push(
         <div
           key={`label-${i}`}
-          className="absolute top-4 text-[9px] text-muted-foreground font-mono"
-          style={{ left: `${timeToPixels(i)}px` }}
+          className="absolute top-5 text-[10px] text-muted-foreground font-mono whitespace-nowrap select-none"
+          style={{
+            left: `${leftPosition}px`,
+            transform: 'translateX(-50%)'
+          }}
         >
           {formatTime(i)}
         </div>
       );
     }
+
+    // Generate minor markers (subdivisions) if there's enough space
+    const minorInterval = interval / 4;
+    if (timeToPixels(minorInterval) >= 20) { // Only show if at least 20px apart
+      for (let i = minorInterval; i < duration; i += minorInterval) {
+        // Skip positions that would overlap with major markers
+        if (i % interval !== 0) {
+          markers.push(
+            <div
+              key={`minor-${i}`}
+              className="absolute top-1 h-2 w-px bg-border/50 z-5"
+              style={{ left: `${timeToPixels(i)}px` }}
+            />
+          );
+        }
+      }
+    }
+
     return markers;
   };
 
@@ -518,9 +605,9 @@ const MovieTimeline = ({
   const selectedSegmentInfo = getSelectedSegmentInfo();
 
   return (
-    <div className="w-[calc(100vw-240px)] rounded-lg">
+    <div className="w-full rounded-lg">
       {/* Header */}
-      <div className="flex items-center justify-between p-1 bg-accent mb-2">
+      <div className="flex items-center justify-between p-1 bg-accent">
         <div className="flex items-center gap-2">
           <Button size="icon_8" variant="outline" onClick={togglePlayback}>
             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
@@ -593,28 +680,28 @@ const MovieTimeline = ({
 
       {/* Timeline Container */}
       <div className='flex rounded-lg bg-muted/20'>
-        <div className='w-52 border bg-muted/50 p-2'>
-          <div className='h-10'>
+        <div className='w-52 border bg-muted/50 py-2'>
+          <div className='h-10 px-2'>
             <div className='flex gap-2'>
               <Button
                 size="xs" variant={activeAudio === "translated" ? "" : "outline"}
                 onClick={() => {
                   setActiveAudio("translated")
-                  setTrackLayers(prev => prev.map(l => l.id === "translated" ? { ...l, volume: 1 } : { ...l, volume: 0 }));
+                  setTrackLayers(prev => prev.map(l => ["translated", "instrument"].includes(l.id) ? { ...l, volume: 1 } : { ...l, volume: 0 }));
                 }}
               >Translated</Button>
               <Button
                 size="xs" variant={activeAudio === "original" ? "" : "outline"}
                 onClick={() => {
                   setActiveAudio("original")
-                  setTrackLayers(prev => prev.map(l => l.id === "original" ? { ...l, volume: 1 } : { ...l, volume: 0 }));
+                  setTrackLayers(prev => prev.map(l => ["original", "instrument"].includes(l.id) ? { ...l, volume: 1 } : { ...l, volume: 0 }));
                 }}
               >Original</Button>
             </div>
           </div>
-          {trackLayers.map((layer) => (
-            <div key={`audio-track-layer-${layer.id}`} className="h-10 mb-4">
-              <div className="flex items-center space-x-2">
+          {trackLayers.filter((layer) => SHOWN_TRACKS_NAME.includes(layer.name)).map((layer) => (
+            <div key={`audio-track-layer-${layer.id}`} className="h-8 border-y p-2">
+              <div className="flex items-center space-x-2 h-full">
                 <div className="text-sm font-medium">{layer.id}</div>
                 <div
                   className="w-3 h-3 rounded-full"
@@ -624,7 +711,7 @@ const MovieTimeline = ({
                   ({layer.segments.length} segment{layer.segments.length !== 1 ? 's' : ''})
                 </span>
               </div>
-              <div className="flex items-center space-x-2">
+              {/* <div className="flex items-center space-x-2">
                 <Volume2 size={14} className="text-muted-foreground" />
                 <input
                   type="range"
@@ -641,7 +728,7 @@ const MovieTimeline = ({
                   className="w-16"
                 />
                 <span className="text-xs text-muted-foreground w-8">{Math.round(layer.volume * 100)}%</span>
-              </div>
+              </div> */}
             </div>
           ))}
         </div>
@@ -650,26 +737,30 @@ const MovieTimeline = ({
           {/* Timeline Header */}
           <div
             ref={timelineRef}
-            className="relative h-10 cursor-pointer"
+            className="relative h-10 cursor-pointer" // Increased height to accommodate labels
             onClick={handleTimelineClick}
-            style={{ width: `${800 * zoom}px` }}
+            style={{
+              width: `${Math.max(800 * zoom, 1000)}px`, // Minimum width of 1000px
+              minWidth: '100%' // Ensure it fills the container
+            }}
           >
             {generateMarkers()}
 
             {/* Playhead */}
             <div
-              className="absolute top-0 bottom-0 w-[1px] bg-red-500 z-20 pointer-events-none h-4"
+              className="absolute top-0 bottom-0 w-[1px] bg-red-500 z-20 pointer-events-none h-5"
               style={{ left: `${playheadPosition}px` }}
-            ></div>
+            >
+            </div>
           </div>
 
           {/* Track Layers */}
-          <div className="space-y-4">
-            {trackLayers.map((layer) => (
+          <div className="">
+            {trackLayers.filter((layer) => SHOWN_TRACKS_NAME.includes(layer.name)).map((layer) => (
               <div key={layer.id} className="relative">
                 {/* Layer Timeline */}
                 <div
-                  className="relative h-10 bg-muted/30 rounded-md border"
+                  className="relative h-8 bg-muted/30 rounded-md border"
                   style={{ width: `${800 * zoom}px` }}
                 >
                   {/* Audio Segments */}
@@ -703,8 +794,8 @@ const MovieTimeline = ({
                         onMouseDown={(e) => handleSegmentMouseDown(segment.id, e)}
                       >
                         {/* Segment Label */}
-                        <div className="absolute top-0 left-1 text-xs text-white/80 truncate max-w-full">
-                          {segment.name}
+                        <div className="absolute top-0 left-1 text-xs text-white/80 truncate max-w-full line-clamp-1">
+                          {segment.value}
                         </div>
 
                         {/* Audio indicator */}
@@ -730,57 +821,61 @@ const MovieTimeline = ({
             ))}
           </div>
         </div>
+      </div>
 
-        <div className='w-64 border bg-muted/50 p-2'>
-          {selectedSegmentInfo &&
-            <div className="flex flex-col gap-0.5">
+      <div className='w-full flex border'>
+        <div className='flex-none w-52 border bg-muted/50 px-2 py-1'>
+            <div className="flex flex-col gap-1 p-2">
               <div className="flex items-center space-x-2">
                 <Music size={16} className="text-muted-foreground" />
-                <span className="font-medium">{selectedSegmentInfo.name}</span>
-                <span className="text-xs text-muted-foreground">({selectedSegmentInfo.layerName})</span>
+                <span className="font-medium text-xs">{selectedSegmentInfo?.name}</span>
+                <span className="text-xs text-muted-foreground">({selectedSegmentInfo?.layerName})</span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Time:</span>
-                <span className="font-mono text-xs">{formatTime(selectedSegmentInfo.startTime)} - {formatTime(selectedSegmentInfo.endTime)}</span>
+                <span className="font-mono text-xs">{formatTime(selectedSegmentInfo?.startTime)} - {formatTime(selectedSegmentInfo?.endTime)}</span>
               </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+            </div>
+        </div>
+        {selectedSegmentInfo &&
+          <div className="w-full flex flex-col items-center justify-center gap-0.5 px-2 py-1">
+            <div className='flex gap-1 w-full'>
+                <Textarea
+                  value={selectedSegmentInfo?.value}
+                  className="p-1 w-full h-8 min-h-8"
+                  onChange={() => {}}
+                  row="1"
+                />
+            </div>
+            <div className='flex justify-start w-full items-center gap-4'>
+              <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 bg-muted">
                 <span>Duration:</span>
-                <span className="font-mono text-xs">{formatTime(selectedSegmentInfo.duration)}</span>
+                <span>{formatTime(selectedSegmentInfo.duration)}</span>
               </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 bg-muted">
                 <span>Volume:</span>
-                <span className="font-mono text-xs">{Math.round(selectedSegmentInfo.layerVolume * 100)}%</span>
+                <span>{Math.round(selectedSegmentInfo.layerVolume * 100)}%</span>
               </div>
               {selectedSegmentInfo.audioUrl && (
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-sm text-muted-foreground gap-2 bg-muted">
                   <span>Audio:</span>
                   <span className="text-xs text-green-600">Available</span>
                 </div>
               )}
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Value:</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <Textarea
-                  value={selectedSegmentInfo?.value}
-                  className="p-0.5"
-                  onChange={() => {}}
-                />
-              </div>
             </div>
-          }
-        </div>
+          </div>
+        }
       </div>
 
       {/* Footer */}
-      <div className="mt-2 flex justify-between items-center text-xs text-muted-foreground">
+      {/* <div className="mt-2 flex justify-between items-center text-xs text-muted-foreground">
         <div></div>
         <div className="flex items-center space-x-4">
           <span>Duration: {formatTime(duration)}</span>
           <span>Zoom: {zoom}x</span>
           <span>Precision: 1ms</span>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

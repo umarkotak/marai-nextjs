@@ -10,7 +10,7 @@ import ReactPlayer from "react-player/lazy";
 
 const ReactPlayerClient = ({ playerRef, url, ...props }) => {
   return (
-    <div className="relative pt-[56.25%] rounded-lg overflow-hidden bg-black">
+    <div className="relative pt-[56.25%] rounded-none overflow-hidden bg-black">
       <ReactPlayer
         ref={playerRef}
         className="absolute top-0 left-0"
