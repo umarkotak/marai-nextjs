@@ -8,7 +8,7 @@ export async function middleware(request) {
   const PROTECTED_PATHS = ['/dashboard', '/tasks', '/server_info']
 
   const isProtected = PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
-  
+
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/home', request.url))
   }
