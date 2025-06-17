@@ -42,10 +42,8 @@ export function NavUser({user}) {
 
   function logout() {
     maraiAPI.setAuthToken('')
-
-    router.push("/")
-
     toast.info("Logout sukses!")
+    router.reload()
   }
 
   return (
