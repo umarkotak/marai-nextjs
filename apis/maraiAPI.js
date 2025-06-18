@@ -4,9 +4,11 @@ class MaraiAPI {
   constructor(config = {}) {
     // Default configuration
     this.config = {
-      baseUrl: config.baseUrl || 'http://localhost:9605',
-      secureUrl: config.secureUrl || 'https://marai.cloudflare-avatar-id-1.site',
-      timeout: config.timeout || 3600*1000,
+      baseUrl: 'http://localhost:9605',
+      secureUrl: 'https://marai.cloudflare-avatar-id-1.site',
+      // ollamaHost: 'http://127.0.0.1:11434',
+      ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
+      timeout: 3600000,
       defaultHeaders: {
         'Content-Type': 'application/json',
         ...config.defaultHeaders
@@ -34,7 +36,7 @@ class MaraiAPI {
       return
     }
     Cookies.set('MAIAT', token)
-    return 
+    return
   }
 
   getAuthToken() {
@@ -178,13 +180,6 @@ class MaraiAPI {
 }
 
 // Singleton instance with default configuration
-const maraiAPI = new MaraiAPI({
-  timeout: 3600000,
-  baseUrl: 'http://localhost:9605',
-  secureUrl: null,
-  defaultHeaders: {
-    'Content-Type': 'application/json'
-  }
-});
+const maraiAPI = new MaraiAPI({});
 
 export default maraiAPI;

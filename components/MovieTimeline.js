@@ -1,19 +1,21 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, Square, SkipBack, SkipForward, Volume2, Scissors, Move, Clock, Music, Plus } from 'lucide-react';
+import { Play, Pause, Square, SkipBack, SkipForward, Volume2, Move, Clock, Music, Plus } from 'lucide-react';
 import { Button } from './ui/button';
-import maraiAPI from '@/apis/maraiAPI';
 import { toast } from 'react-toastify';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
 var SHOWN_TRACKS_NAME = ["translated"] // translated, original, instrument
 
+var varCurrentActiveSegment = {}
 const MovieTimeline = ({
   playerState,
   playerRef,
   setPlayerState,
   taskDetail,
   dubbingInfo,
+  activeLine,
+  setActiveLine,
 }) => {
   // Audio references for each segment
   const audioRefs = useRef(new Map());
@@ -52,7 +54,7 @@ const MovieTimeline = ({
       tmpTrackLayers.push({
         id: tempDubbingInfo.translated_transcripts?.id,
         name: tempDubbingInfo.translated_transcripts?.speaker,
-        color: 'hsl(0 72.2% 50.6%)', // red-500
+        color: 'hsl(221.2 83.2% 53.3%)', // red-500
         volume: 1,
         segments: tempDubbingInfo.translated_transcripts?.transcript_lines.map((segment) => ({
           id: segment?.id,
@@ -68,7 +70,7 @@ const MovieTimeline = ({
       tmpTrackLayers.push({
         id: tempDubbingInfo.original_transcript?.id,
         name: tempDubbingInfo.original_transcript?.speaker,
-        color: 'hsl(221.2 83.2% 53.3%)', // blue-600
+        color: 'hsl(0 72.2% 50.6%)', // blue-600
         volume: 0,
         segments: tempDubbingInfo.original_transcript?.transcript_lines.map((segment) => ({
           id: segment?.id,
@@ -91,6 +93,12 @@ const MovieTimeline = ({
   useEffect(() => {
     GetDubbingInfo(dubbingInfo)
   }, [taskDetail, dubbingInfo])
+
+  useEffect(() => {
+    if (activeLine.start_at_ms) {
+      setCurrentTime(activeLine.start_at_ms)
+    }
+  }, [activeLine])
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -340,6 +348,7 @@ const MovieTimeline = ({
     if (!segment) return;
 
     const startTime = segment.startTime;
+    setCurrentTime(startTime)
 
     const handleMouseMove = (e) => {
       const deltaX = e.clientX - startX;
@@ -604,6 +613,25 @@ const MovieTimeline = ({
 
   const selectedSegmentInfo = getSelectedSegmentInfo();
 
+  const getActiveSegment = () => {
+    for (const layer of trackLayers) {
+      if (layer.name !== "translated") { continue }
+      for (const segment of layer.segments) {
+        if (currentTime >= segment.startTime && currentTime < segment.endTime) {
+          if (varCurrentActiveSegment?.id !== segment.id) {
+            varCurrentActiveSegment = segment
+            setActiveLine(segment)
+          }
+
+          return segment;
+        }
+      }
+    }
+    return null;
+  };
+
+  const activeSegment = getActiveSegment();
+
   return (
     <div className="w-full rounded-lg">
       {/* Header */}
@@ -768,15 +796,13 @@ const MovieTimeline = ({
                     <div
                       key={segment.id}
                       className={`absolute top-0.5 bottom-0.5 rounded-sm group border ${
-                        selectedSegment === segment.id ? 'ring-2 ring-ring ring-offset-1' : 'hover:ring-1 hover:ring-ring/50'
-                      } ${
-                        currentlyPlayingAudios.current.has(segment.id) ? 'ring-2 ring-green-500' : ''
+                        activeSegment?.id === segment.id ? 'ring-2 ring-ring ring-offset-1' : 'hover:ring-1 hover:ring-ring/50'
                       }`}
                       style={{
                         left: `${timeToPixels(segment.startTime)}px`,
                         width: `${timeToPixels(segment.endTime - segment.startTime)}px`,
                         backgroundColor: layer.color,
-                        opacity: selectedSegment === segment.id ? 0.9 : 0.7
+                        opacity: activeSegment?.id === segment.id ? 0.9 : 0.7
                       }}
                     >
                       {/* Left Resize Handle */}
@@ -828,20 +854,20 @@ const MovieTimeline = ({
             <div className="flex flex-col gap-1 p-2">
               <div className="flex items-center space-x-2">
                 <Music size={16} className="text-muted-foreground" />
-                <span className="font-medium text-xs">{selectedSegmentInfo?.name}</span>
-                <span className="text-xs text-muted-foreground">({selectedSegmentInfo?.layerName})</span>
+                <span className="font-medium text-xs">{activeSegment?.name}</span>
+                <span className="text-xs text-muted-foreground">({activeSegment?.layerName})</span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Time:</span>
-                <span className="font-mono text-xs">{formatTime(selectedSegmentInfo?.startTime)} - {formatTime(selectedSegmentInfo?.endTime)}</span>
+                <span className="font-mono text-xs">{formatTime(activeSegment?.startTime)} - {formatTime(activeSegment?.endTime)}</span>
               </div>
             </div>
         </div>
-        {selectedSegmentInfo &&
+        {activeSegment &&
           <div className="w-full flex flex-col items-center justify-center gap-0.5 px-2 py-1">
             <div className='flex gap-1 w-full'>
                 <Textarea
-                  value={selectedSegmentInfo?.value}
+                  value={activeSegment?.value}
                   className="p-1 w-full h-8 min-h-8"
                   onChange={() => {}}
                   row="1"
@@ -850,13 +876,13 @@ const MovieTimeline = ({
             <div className='flex justify-start w-full items-center gap-4'>
               <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 bg-muted">
                 <span>Duration:</span>
-                <span>{formatTime(selectedSegmentInfo.duration)}</span>
+                <span>{formatTime(activeSegment?.endTime - activeSegment?.startTime)}</span>
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 bg-muted">
+              {/* <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 bg-muted">
                 <span>Volume:</span>
-                <span>{Math.round(selectedSegmentInfo.layerVolume * 100)}%</span>
-              </div>
-              {selectedSegmentInfo.audioUrl && (
+                <span>{Math.round(activeSegment.layerVolume * 100)}%</span>
+              </div> */}
+              {activeSegment.audioUrl && (
                 <div className="flex items-center justify-between text-sm text-muted-foreground gap-2 bg-muted">
                   <span>Audio:</span>
                   <span className="text-xs text-green-600">Available</span>

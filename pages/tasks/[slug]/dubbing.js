@@ -2,7 +2,7 @@ import maraiAPI from "@/apis/maraiAPI";
 import MovieTimeline from "@/components/MovieTimeline";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftIcon, DownloadIcon, SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon, DownloadIcon, MoreHorizontalIcon, Play, SettingsIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -26,6 +26,7 @@ export default function TaskDubbing() {
   })
   const playerRef = useRef(null)
   const { open } = useSidebar()
+  const [activeLine, setActiveLine] = useState({})
 
   async function GetTaskDetail(slug) {
     try {
@@ -80,6 +81,10 @@ export default function TaskDubbing() {
     GetDubbingInfo(router.query.slug)
   }, [router])
 
+  useEffect(() => {
+
+  }, [activeLine])
+
   return (
     <div className="flex flex-row justify-start w-full overflow-auto">
       <div className="flex flex-col gap-2 w-full justify-between h-[calc(100vh-74px)]">
@@ -96,20 +101,27 @@ export default function TaskDubbing() {
           <div className="col-span-7">
             <div className="flex flex-col gap-4 h-[calc(100vh-330px)] overflow-auto">
               {Array.from({ length: dubbingInfo?.max_track_segment }, (_, i) => (
-                <div key={`transcript-segment-${i}`} className="grid grid-cols-2 text-sm gap-2 p-0.5">
-                  <div>
+                <div key={`transcript-segment-${i}`} className={`grid grid-cols-12 text-sm gap-2 p-0.5`}>
+                  <div className="col-span-5">
                     <Textarea
                       value={dubbingInfo?.original_transcript?.transcript_lines[i].value}
                       className="rounded-none p-1 bg-muted"
                       readOnly
                     />
                   </div>
-                  <div>
+                  <div className="col-span-6">
                     <Textarea
                       value={dubbingInfo?.translated_transcripts?.transcript_lines[i].value}
-                      className="rounded-none p-1 bg-accent"
+                      className={`rounded-none p-1 bg-accent
+                        ${activeLine.id === dubbingInfo?.translated_transcripts?.transcript_lines[i].id ? "border-2 border-primary" : ""}
+                      `}
                       onChange={() => {}}
+                      onClick={() => {setActiveLine(dubbingInfo?.translated_transcripts?.transcript_lines[i])}}
                     />
+                  </div>
+                  <div className="col-span-1 flex flex-col gap-1">
+                    <Button className="rounded-none w-full h-full" size="xs"><Play /></Button>
+                    <Button className="rounded-none w-full h-full" size="xs"><MoreHorizontalIcon /></Button>
                   </div>
                 </div>
               ))}
@@ -143,6 +155,8 @@ export default function TaskDubbing() {
             playerRef={playerRef}
             taskDetail={taskDetail}
             dubbingInfo={dubbingInfo}
+            activeLine={activeLine}
+            setActiveLine={setActiveLine}
           />
         </div>
       </div>

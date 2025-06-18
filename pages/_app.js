@@ -21,7 +21,7 @@ export default function App({ Component, pageProps }) {
 
    if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex min-h-svh w-full items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex w-full items-center justify-center">
         <div className="flex justify-center items-center flex-col w-full max-w-sm">
           <h1 className="text-2xl font-bold text-white mb-2 leading-tight text-center">
             Welcome to Dashboard

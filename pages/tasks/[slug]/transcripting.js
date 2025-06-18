@@ -21,9 +21,6 @@ import { tomorrow } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { useSidebar } from "@/components/ui/sidebar";
 import Link from "next/link";
 
-var OLLAMA_HOST = "https://marllma.cloudflare-avatar-id-1.site"
-// var OLLAMA_HOST = "http://127.0.0.1:11434"
-
 export default function TaskTranscripting() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -162,7 +159,7 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
   const [conversationHistory, setConversationHistory] = useState([]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const ollama = new Ollama({ host: OLLAMA_HOST })
+  const ollama = new Ollama({ host: maraiAPI.config.ollamaHost })
 
   // Generate storage key based on slug
   const getStorageKey = () => `chat_${slug}`;
@@ -328,7 +325,7 @@ function ChatApp({ taskDetail, transcriptInfo, slug }) {
 
       const errorMessage = {
         id: Date.now() + 1,
-        text: `Maaf, terjadi kesalahan saat memproses permintaan Anda. Pastikan Ollama server berjalan di ${OLLAMA_HOST}`,
+        text: `Maaf, terjadi kesalahan saat memproses permintaan Anda. Pastikan Ollama server berjalan di ${maraiAPI.config.ollamaHost}`,
         sender: "bot",
         timestamp: new Date(),
         show: true
