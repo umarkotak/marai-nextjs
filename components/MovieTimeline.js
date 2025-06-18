@@ -104,7 +104,7 @@ const MovieTimeline = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(60000); // 60 seconds in ms
   const [volume, setVolume] = useState(0.8);
-  const [zoom, setZoom] = useState(2);
+  const [zoom, setZoom] = useState(10);
   const [trackLayers, setTrackLayers] = useState([]);
   const [selectedSegment, setSelectedSegment] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -694,9 +694,9 @@ const MovieTimeline = ({
             <span className="text-sm text-muted-foreground">Zoom</span>
             <input
               type="range"
-              min="1"
-              max="5"
-              step="0.1"
+              min="5"
+              max="20"
+              step="0.5"
               value={zoom}
               onChange={(e) => setZoom(parseFloat(e.target.value))}
               className="w-20"
