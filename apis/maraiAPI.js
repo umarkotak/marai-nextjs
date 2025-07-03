@@ -4,7 +4,8 @@ class MaraiAPI {
   constructor(config = {}) {
     // Default configuration
     this.config = {
-      baseUrl: 'http://localhost:9605',
+      // baseUrl: 'http://localhost:9605',
+      baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
       secureUrl: 'https://marai.cloudflare-avatar-id-1.site',
       // ollamaHost: 'http://127.0.0.1:11434',
       ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
