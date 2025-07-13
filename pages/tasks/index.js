@@ -197,6 +197,10 @@ function TaskRow({oneTask, getTaskList}) {
     }
   }
 
+  function generateDetailLink(taskType, slug) {
+    return `/tasks/${slug}/${taskType}`
+  }
+
   return(
     <TableRow key={`task-${oneTask.id}`}>
       <TableCell>
@@ -297,7 +301,7 @@ function TaskRow({oneTask, getTaskList}) {
               </SheetDescription>
             </SheetContent>
           </Sheet>
-          <Link href={`/tasks/${oneTask.slug}/${oneTask.task_type === "dubbing" ? "dubbing" : "transcripting"}`}>
+          <Link href={generateDetailLink(oneTask.task_type, oneTask.slug)}>
             <Button size="icon_6"><Pencil /></Button>
           </Link>
           <DropdownMenu>
