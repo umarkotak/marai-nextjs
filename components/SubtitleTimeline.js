@@ -17,6 +17,7 @@ const SubtitleTimeline = ({
   subtitleInfo,
   activeLine,
   setActiveLine,
+  setSubtitleInfo,
 }) => {
   async function GetSubtitleInfo(tempSubtitleInfo) {
     try {
@@ -30,23 +31,6 @@ const SubtitleTimeline = ({
       if (!tempSubtitleInfo.translated_transcripts?.id) { return }
 
       tmpTrackLayers.push({
-        id: "instrument",
-        name: "instrument",
-        color: 'hsl(210 40% 50%)', // neutral blue-gray
-        volume: 1,
-        segments: [
-          {
-            id: "instrument",
-            startTime: 0,
-            endTime: tempSubtitleInfo?.duration_ms,
-            waveform: generateWaveform(150),
-            name: "instrument",
-            value: "",
-          }
-        ]
-      })
-
-      tmpTrackLayers.push({
         id: tempSubtitleInfo.translated_transcripts?.id,
         name: tempSubtitleInfo.translated_transcripts?.speaker,
         color: 'hsl(217 91% 60%)', // modern blue
@@ -55,22 +39,6 @@ const SubtitleTimeline = ({
           id: segment?.id,
           startTime: segment.start_at_ms,
           endTime: segment.end_at_ms,
-          waveform: generateWaveform(150),
-          name: segment?.speaker,
-          value: segment.value,
-        }))
-      })
-
-      tmpTrackLayers.push({
-        id: tempSubtitleInfo.original_transcript?.id,
-        name: tempSubtitleInfo.original_transcript?.speaker,
-        color: 'hsl(142 76% 36%)', // modern green
-        volume: 0,
-        segments: tempSubtitleInfo.original_transcript?.transcript_lines.map((segment) => ({
-          id: segment?.id,
-          startTime: segment.start_at_ms,
-          endTime: segment.end_at_ms,
-          waveform: generateWaveform(150),
           name: segment?.speaker,
           value: segment.value,
         }))
@@ -106,13 +74,6 @@ const SubtitleTimeline = ({
   const timelineRef = useRef(null);
   const animationRef = useRef(null);
   const lastUpdateTimeRef = useRef(0); // Track when we last updated time
-
-  // Generate mock waveform data
-  function generateWaveform(points) {
-    return Array.from({ length: points }, (_, i) =>
-      Math.sin(i * 0.1) * 0.5 + Math.random() * 0.3 + 0.2
-    );
-  }
 
   // Convert time to pixels
   const timeToPixels = useCallback((timeMs) => {
@@ -240,11 +201,14 @@ const SubtitleTimeline = ({
         layer.id === layerId
           ? {
               ...layer,
-              segments: layer.segments.map(s =>
-                s.id === segmentId
+              segments: layer.segments.map(s => {
+                if (s.id === segmentId) {
+                  sycnSegmentToSubtitleInfo(s)
+                }
+                return s.id === segmentId
                   ? { ...s, startTime: newStartTime, endTime: newEndTime }
                   : s
-              )
+              })
             }
           : layer
       ));
@@ -293,11 +257,14 @@ const SubtitleTimeline = ({
         layer.id === layerId
           ? {
               ...layer,
-              segments: layer.segments.map(s =>
-                s.id === segmentId
+              segments: layer.segments.map(s => {
+                if (s.id === segmentId) {
+                  sycnSegmentToSubtitleInfo(s)
+                }
+                return s.id === segmentId
                   ? { ...s, startTime: newStartTime }
                   : s
-              )
+              })
             }
           : layer
       ));
@@ -346,11 +313,14 @@ const SubtitleTimeline = ({
         layer.id === layerId
           ? {
               ...layer,
-              segments: layer.segments.map(s =>
-                s.id === segmentId
+              segments: layer.segments.map(s => {
+                if (s.id === segmentId) {
+                  sycnSegmentToSubtitleInfo(s)
+                }
+                return s.id === segmentId
                   ? { ...s, endTime: newEndTime }
                   : s
-              )
+              })
             }
           : layer
       ));
@@ -507,6 +477,27 @@ const SubtitleTimeline = ({
   };
 
   const activeSegment = getActiveSegment();
+
+  function sycnSegmentToSubtitleInfo(seg) {
+    let segmentIDSplit = seg.id.split("-")
+    let index = segmentIDSplit[1]
+
+    setSubtitleInfo(prevInfo => {
+      const updatedInfo = { ...prevInfo };
+      if (updatedInfo.translated_transcripts?.transcript_lines[index]) {
+        updatedInfo.translated_transcripts.transcript_lines[index] = {
+          ...updatedInfo.translated_transcripts.transcript_lines[index],
+          start_at_ms: seg.startTime,
+          end_at_ms: seg.endTime,
+        };
+      }
+      return updatedInfo;
+    });
+  }
+
+  useEffect(() => {
+    // console.log("TRS", trackLayers)
+  }, [trackLayers])
 
   return (
     <div className="w-full rounded-lg border bg-background shadow-sm">

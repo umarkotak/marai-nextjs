@@ -5,10 +5,10 @@ class MaraiAPI {
     // Default configuration
     this.config = {
       baseUrl: 'http://localhost:9605',
-      // baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
+      baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
       secureUrl: 'https://marai.cloudflare-avatar-id-1.site',
       ollamaHost: 'http://127.0.0.1:11434',
-      // ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
+      ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
       timeout: 3600000,
       defaultHeaders: {
         'Content-Type': 'application/json',
@@ -64,8 +64,6 @@ class MaraiAPI {
       });
 
       clearTimeout(timeoutId);
-
-      console.log('resp ada =>', this.getAuthToken())
 
       return response
 
@@ -177,10 +175,8 @@ class MaraiAPI {
     return this.get(`/marai/api/tasks/${params.slug}/log`, headers, params);
   }
 
-  // EXAMPLE
-
-  async patchUpdateYoutubeChannel(headers = {}, { id, ...params } = {}) {
-    return this.patch(`/ytkidd/api/youtube_channel/${id}`, headers, params);
+  async patchUpdateTaskTranscriptSegment(headers = {}, body = {}) {
+    return this.patch(`/marai/api/tasks/${body.slug}/transcript/segment`, headers, body);
   }
 }
 

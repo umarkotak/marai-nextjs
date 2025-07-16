@@ -12,7 +12,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import Link from "next/link";
 const ReactPlayerClient = dynamic(() => import('@/components/ReactPlayerClient'), { ssr: false });
 
-export default function TaskDubbing() {
+export default function TaskSubtitle() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -27,6 +27,7 @@ export default function TaskDubbing() {
   const playerRef = useRef(null)
   const { open } = useSidebar()
   const [activeLine, setActiveLine] = useState({})
+  const [vttTimestamp, setVttTimestamp] = useState(null)
 
   async function GetTaskDetail(slug) {
     try {
@@ -79,11 +80,51 @@ export default function TaskDubbing() {
 
     GetTaskDetail(router.query.slug)
     GetSubtitleInfo(router.query.slug)
+
+    setVttTimestamp(Date.now())
   }, [router])
 
   useEffect(() => {
 
   }, [activeLine])
+
+  function handleTranslatedTextChange(index, newValue) {
+    setSubtitleInfo(prevInfo => {
+      const updatedInfo = { ...prevInfo };
+      if (updatedInfo.translated_transcripts?.transcript_lines[index]) {
+        updatedInfo.translated_transcripts.transcript_lines[index] = {
+          ...updatedInfo.translated_transcripts.transcript_lines[index],
+          value: newValue
+        };
+      }
+      return updatedInfo;
+    });
+  };
+
+  async function updateSubtitleSegment(seg) {
+    if (!router.query.slug) { return }
+
+    try {
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      seg.speaker = ""
+      seg.slug = router.query.slug
+      const response = await maraiAPI.patchUpdateTaskTranscriptSegment({}, seg)
+
+      const body = await response.json()
+
+      if (response.status !== 200) {
+        toast.error(`Gagal memperbarui subtitle segment: ${JSON.stringify(body)}`)
+        return
+      }
+
+      toast.success("segment updated!")
+      setVttTimestamp(Date.now())
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+    }
+  }
 
   return (
     <div className="flex flex-row justify-start w-full overflow-auto">
@@ -99,7 +140,7 @@ export default function TaskDubbing() {
         </div>
         <div className="flex-1 grid grid-cols-12 gap-x-2 overflow-auto">
           <div className="col-span-7">
-            <div className="flex flex-col gap-4 h-[calc(100vh-360px)] overflow-auto">
+            <div className={`flex flex-col gap-4 overflow-auto ${open ? "h-[calc(100vh-330px)]" : "h-[calc(100vh-330px)]"}`}>
               {Array.from({ length: subtitleInfo?.max_track_segment }, (_, i) => (
                 <div key={`transcript-segment-${i}`} className={`grid grid-cols-12 text-sm gap-2 p-0.5`}>
                   <div className="col-span-5">
@@ -111,16 +152,19 @@ export default function TaskDubbing() {
                   </div>
                   <div className="col-span-6">
                     <Textarea
-                      value={subtitleInfo?.translated_transcripts?.transcript_lines[i].value}
+                      value={subtitleInfo?.translated_transcripts?.transcript_lines[i]?.value || ''}
                       className={`rounded-none p-1 bg-accent
-                        ${activeLine.id === subtitleInfo?.translated_transcripts?.transcript_lines[i].id ? "border-2 border-primary" : ""}
+                        ${activeLine.id === subtitleInfo?.translated_transcripts?.transcript_lines[i]?.id ? "border-2 border-primary" : ""}
                       `}
-                      onChange={() => {}}
+                      onChange={(e) => handleTranslatedTextChange(i, e.target.value)}
                       onClick={() => {setActiveLine(subtitleInfo?.translated_transcripts?.transcript_lines[i])}}
                     />
                   </div>
                   <div className="col-span-1 flex flex-col gap-1">
-                    <Button className="rounded-none w-full h-full" size="xs"><Save /></Button>
+                    <Button
+                      className="rounded-none w-full h-full" size="xs"
+                      onClick={() => updateSubtitleSegment(subtitleInfo?.translated_transcripts?.transcript_lines[i])}
+                    ><Save /></Button>
                     <Button className="rounded-none w-full h-full" size="xs"><MoreHorizontalIcon /></Button>
                   </div>
                 </div>
@@ -129,7 +173,7 @@ export default function TaskDubbing() {
           </div>
 
           <div className="col-span-5">
-            <div className="">
+            <div key={`player-ts=${vttTimestamp}`} className={``}>
               <ReactPlayerClient
                 playerRef={playerRef}
                 playerState={playerState}
@@ -142,7 +186,9 @@ export default function TaskDubbing() {
                       crossOrigin: "true",
                     },
                     tracks: [
-                      {kind: 'subtitles', src: `${taskDetail?.translated_transcript_url}?ts=${Date.now()}`, srcLang: 'id', default: true},
+                      {
+                        kind: 'subtitles', src: `${taskDetail?.translated_transcript_url}?ts=${vttTimestamp}`, srcLang: 'id', default: true
+                      },
                     ],
                   },
                 }}
@@ -161,6 +207,7 @@ export default function TaskDubbing() {
             subtitleInfo={subtitleInfo}
             activeLine={activeLine}
             setActiveLine={setActiveLine}
+            setSubtitleInfo={setSubtitleInfo}
           />
         </div>
       </div>
