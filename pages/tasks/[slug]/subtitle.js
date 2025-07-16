@@ -2,7 +2,7 @@ import maraiAPI from "@/apis/maraiAPI";
 import SubtitleTimeline from "@/components/SubtitleTimeline";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftIcon, DownloadIcon, MoreHorizontalIcon, Play, SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon, DownloadIcon, MoreHorizontalIcon, Play, Save, SettingsIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -21,7 +21,7 @@ export default function TaskDubbing() {
     playing: false,
     seekto: 0,
   })
-  const [dubbingInfo, setDubbingInfo] = useState({
+  const [subtitleInfo, setSubtitleInfo] = useState({
     duration_ms: 60000
   })
   const playerRef = useRef(null)
@@ -50,24 +50,24 @@ export default function TaskDubbing() {
     }
   }
 
-  async function GetDubbingInfo(slug) {
+  async function GetSubtitleInfo(slug) {
     if (!slug) { return }
 
     try {
       if (maraiAPI.getAuthToken() === "") { return }
 
-      const response = await maraiAPI.getDubbingInfo({}, {
+      const response = await maraiAPI.getSubtitleInfo({}, {
         slug: slug
       })
 
       const body = await response.json()
 
       if (response.status !== 200) {
-        toast.error(`Gagal memuat task dubbing info: ${JSON.stringify(body)}`)
+        toast.error(`Gagal memuat task subtitle info: ${JSON.stringify(body)}`)
         return
       }
 
-      setDubbingInfo(body.data)
+      setSubtitleInfo(body.data)
 
     } catch(e) {
       toast.error(`Error: ${e}`)
@@ -78,7 +78,7 @@ export default function TaskDubbing() {
     if (!router.query.slug) { return }
 
     GetTaskDetail(router.query.slug)
-    GetDubbingInfo(router.query.slug)
+    GetSubtitleInfo(router.query.slug)
   }, [router])
 
   useEffect(() => {
@@ -100,27 +100,27 @@ export default function TaskDubbing() {
         <div className="flex-1 grid grid-cols-12 gap-x-2 overflow-auto">
           <div className="col-span-7">
             <div className="flex flex-col gap-4 h-[calc(100vh-360px)] overflow-auto">
-              {Array.from({ length: dubbingInfo?.max_track_segment }, (_, i) => (
+              {Array.from({ length: subtitleInfo?.max_track_segment }, (_, i) => (
                 <div key={`transcript-segment-${i}`} className={`grid grid-cols-12 text-sm gap-2 p-0.5`}>
                   <div className="col-span-5">
                     <Textarea
-                      value={dubbingInfo?.original_transcript?.transcript_lines[i].value}
+                      value={subtitleInfo?.original_transcript?.transcript_lines[i].value}
                       className="rounded-none p-1 bg-muted"
                       readOnly
                     />
                   </div>
                   <div className="col-span-6">
                     <Textarea
-                      value={dubbingInfo?.translated_transcripts?.transcript_lines[i].value}
+                      value={subtitleInfo?.translated_transcripts?.transcript_lines[i].value}
                       className={`rounded-none p-1 bg-accent
-                        ${activeLine.id === dubbingInfo?.translated_transcripts?.transcript_lines[i].id ? "border-2 border-primary" : ""}
+                        ${activeLine.id === subtitleInfo?.translated_transcripts?.transcript_lines[i].id ? "border-2 border-primary" : ""}
                       `}
                       onChange={() => {}}
-                      onClick={() => {setActiveLine(dubbingInfo?.translated_transcripts?.transcript_lines[i])}}
+                      onClick={() => {setActiveLine(subtitleInfo?.translated_transcripts?.transcript_lines[i])}}
                     />
                   </div>
                   <div className="col-span-1 flex flex-col gap-1">
-                    <Button className="rounded-none w-full h-full" size="xs"><Play /></Button>
+                    <Button className="rounded-none w-full h-full" size="xs"><Save /></Button>
                     <Button className="rounded-none w-full h-full" size="xs"><MoreHorizontalIcon /></Button>
                   </div>
                 </div>
@@ -146,6 +146,7 @@ export default function TaskDubbing() {
                     ],
                   },
                 }}
+                // controls={true}
               />
             </div>
           </div>
@@ -157,7 +158,7 @@ export default function TaskDubbing() {
             setPlayerState={setPlayerState}
             playerRef={playerRef}
             taskDetail={taskDetail}
-            dubbingInfo={dubbingInfo}
+            subtitleInfo={subtitleInfo}
             activeLine={activeLine}
             setActiveLine={setActiveLine}
           />

@@ -14,20 +14,20 @@ const SubtitleTimeline = ({
   playerRef,
   setPlayerState,
   taskDetail,
-  dubbingInfo,
+  subtitleInfo,
   activeLine,
   setActiveLine,
 }) => {
-  async function GetDubbingInfo(tempDubbingInfo) {
+  async function GetSubtitleInfo(tempSubtitleInfo) {
     try {
-      if (!tempDubbingInfo.duration_ms) { return }
+      if (!tempSubtitleInfo.duration_ms) { return }
 
-      setDuration(tempDubbingInfo.duration_ms)
+      setDuration(tempSubtitleInfo.duration_ms)
 
       var tmpTrackLayers = []
 
-      if (!tempDubbingInfo.original_transcript?.id) { return }
-      if (!tempDubbingInfo.translated_transcripts?.id) { return }
+      if (!tempSubtitleInfo.original_transcript?.id) { return }
+      if (!tempSubtitleInfo.translated_transcripts?.id) { return }
 
       tmpTrackLayers.push({
         id: "instrument",
@@ -38,7 +38,7 @@ const SubtitleTimeline = ({
           {
             id: "instrument",
             startTime: 0,
-            endTime: tempDubbingInfo?.duration_ms,
+            endTime: tempSubtitleInfo?.duration_ms,
             waveform: generateWaveform(150),
             name: "instrument",
             value: "",
@@ -47,11 +47,11 @@ const SubtitleTimeline = ({
       })
 
       tmpTrackLayers.push({
-        id: tempDubbingInfo.translated_transcripts?.id,
-        name: tempDubbingInfo.translated_transcripts?.speaker,
+        id: tempSubtitleInfo.translated_transcripts?.id,
+        name: tempSubtitleInfo.translated_transcripts?.speaker,
         color: 'hsl(217 91% 60%)', // modern blue
         volume: 1,
-        segments: tempDubbingInfo.translated_transcripts?.transcript_lines.map((segment) => ({
+        segments: tempSubtitleInfo.translated_transcripts?.transcript_lines.map((segment) => ({
           id: segment?.id,
           startTime: segment.start_at_ms,
           endTime: segment.end_at_ms,
@@ -62,11 +62,11 @@ const SubtitleTimeline = ({
       })
 
       tmpTrackLayers.push({
-        id: tempDubbingInfo.original_transcript?.id,
-        name: tempDubbingInfo.original_transcript?.speaker,
+        id: tempSubtitleInfo.original_transcript?.id,
+        name: tempSubtitleInfo.original_transcript?.speaker,
         color: 'hsl(142 76% 36%)', // modern green
         volume: 0,
-        segments: tempDubbingInfo.original_transcript?.transcript_lines.map((segment) => ({
+        segments: tempSubtitleInfo.original_transcript?.transcript_lines.map((segment) => ({
           id: segment?.id,
           startTime: segment.start_at_ms,
           endTime: segment.end_at_ms,
@@ -84,12 +84,13 @@ const SubtitleTimeline = ({
   }
 
   useEffect(() => {
-    GetDubbingInfo(dubbingInfo)
-  }, [taskDetail, dubbingInfo])
+    GetSubtitleInfo(subtitleInfo)
+  }, [taskDetail, subtitleInfo])
 
   useEffect(() => {
     if (activeLine.start_at_ms) {
       setCurrentTime(activeLine.start_at_ms)
+      playerRef.current?.seekTo(activeLine.start_at_ms/1000, 'seconds');
     }
   }, [activeLine])
 
@@ -104,6 +105,7 @@ const SubtitleTimeline = ({
 
   const timelineRef = useRef(null);
   const animationRef = useRef(null);
+  const lastUpdateTimeRef = useRef(0); // Track when we last updated time
 
   // Generate mock waveform data
   function generateWaveform(points) {
@@ -124,6 +126,46 @@ const SubtitleTimeline = ({
     return Math.round(pixels / pixelsPerMs);
   }, [duration, zoom]);
 
+  // Seek to a specific time (used by all seek operations)
+  const seekTo = useCallback((newTime) => {
+    const clampedTime = Math.max(0, Math.min(duration, newTime));
+    setCurrentTime(clampedTime);
+    playerRef.current?.seekTo(clampedTime / 1000, 'seconds');
+
+    // If currently playing, restart the animation loop from the new time
+    if (isPlaying) {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      startAnimationLoop(clampedTime);
+    }
+  }, [duration, isPlaying, playerRef]);
+
+  // Start animation loop from a specific time
+  const startAnimationLoop = useCallback((startTime) => {
+    const animationStartTime = Date.now();
+    lastUpdateTimeRef.current = animationStartTime;
+
+    const updateTime = () => {
+      const now = Date.now();
+      const elapsed = now - animationStartTime;
+      const newTime = startTime + elapsed;
+
+      if (newTime >= duration) {
+        setCurrentTime(duration);
+        setIsPlaying(false);
+        setPlayerState(prev => ({ ...prev, playing: false }));
+        return;
+      }
+
+      setCurrentTime(newTime);
+      lastUpdateTimeRef.current = now;
+      animationRef.current = requestAnimationFrame(updateTime);
+    };
+
+    updateTime();
+  }, [duration, setPlayerState]);
+
   // Play/pause functionality
   const togglePlayback = () => {
     if (isPlaying) {
@@ -135,10 +177,10 @@ const SubtitleTimeline = ({
 
   const stopPlaying = () => {
     setIsPlaying(false);
-    setPlayerState({
-      ...playerState,
+    setPlayerState(prev => ({
+      ...prev,
       playing: false
-    })
+    }));
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
@@ -146,23 +188,11 @@ const SubtitleTimeline = ({
 
   const startPlaying = () => {
     setIsPlaying(true);
-    setPlayerState({
-      ...playerState,
+    setPlayerState(prev => ({
+      ...prev,
       playing: true
-    })
-    const startTime = Date.now() - currentTime;
-
-    const updateTime = () => {
-      const elapsed = Date.now() - startTime;
-      if (elapsed >= duration) {
-        setCurrentTime(duration);
-        setIsPlaying(false);
-        return;
-      }
-      setCurrentTime(elapsed);
-      animationRef.current = requestAnimationFrame(updateTime);
-    };
-    updateTime();
+    }));
+    startAnimationLoop(currentTime);
   }
 
   // Handle timeline click
@@ -172,11 +202,7 @@ const SubtitleTimeline = ({
     const rect = timelineRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const newTime = pixelsToTime(x);
-
-    if (newTime >= 0 && newTime <= duration) {
-      setCurrentTime(newTime);
-      playerRef.current?.seekTo(newTime/1000);
-    }
+    seekTo(newTime);
   };
 
   // Handle segment drag (move entire segment)
@@ -201,8 +227,7 @@ const SubtitleTimeline = ({
     if (!segment) return;
 
     const startTime = segment.startTime;
-    setCurrentTime(startTime)
-    playerRef.current?.seekTo(startTime/1000);
+    seekTo(startTime);
 
     const handleMouseMove = (e) => {
       const deltaX = e.clientX - startX;
@@ -486,7 +511,7 @@ const SubtitleTimeline = ({
   return (
     <div className="w-full rounded-lg border bg-background shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-muted/50 to-muted/30 border-b">
+      <div className="flex items-center justify-between p-2 bg-gradient-to-r from-muted/50 to-muted/30 border-b">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={togglePlayback} className="h-8 w-8">
@@ -494,8 +519,7 @@ const SubtitleTimeline = ({
             </Button>
 
             <Button size="sm" variant="outline" onClick={() => {
-              setCurrentTime(0);
-              playerRef.current?.seekTo(0);
+              seekTo(0);
               stopPlaying();
             }} className="h-8 w-8">
               <Square size={14} />
@@ -503,7 +527,7 @@ const SubtitleTimeline = ({
 
             <Button
               size="sm" variant="outline"
-              onClick={() => setCurrentTime(Math.max(0, currentTime - 5000))}
+              onClick={() => seekTo(currentTime - 5000)}
               className="h-8 w-8"
             >
               <SkipBack size={14} />
@@ -511,7 +535,7 @@ const SubtitleTimeline = ({
 
             <Button
               size="sm" variant="outline"
-              onClick={() => setCurrentTime(Math.min(duration, currentTime + 5000))}
+              onClick={() => seekTo(currentTime + 5000)}
               className="h-8 w-8"
             >
               <SkipForward size={14} />
@@ -571,7 +595,8 @@ const SubtitleTimeline = ({
                   style={{ backgroundColor: layer.color }}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{layer.name}</div>
+                  {/* <div className="text-sm font-medium truncate">{layer.name}</div> */}
+                  <div className="text-sm font-medium truncate">subtitle</div>
                   <div className="text-xs text-muted-foreground">
                     {layer.segments.length} segment{layer.segments.length !== 1 ? 's' : ''}
                   </div>
@@ -675,10 +700,10 @@ const SubtitleTimeline = ({
         <div className='flex'>
           <div className='w-56 border-r bg-muted/20 px-3 py-2'>
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Music size={14} className="text-muted-foreground" />
                 <span className="font-medium text-sm truncate">{activeSegment?.name}</span>
-              </div>
+              </div> */}
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Time:</span>
                 <span className="font-mono">{formatTime(activeSegment?.startTime)} - {formatTime(activeSegment?.endTime)}</span>
@@ -690,15 +715,13 @@ const SubtitleTimeline = ({
             </div>
           </div>
 
-          <div className="flex-1 p-3">
-            <div className="space-y-2">
-              <Textarea
-                value={activeSegment?.value}
-                className="min-h-[60px] resize-none"
-                onChange={() => {}}
-                placeholder="Edit subtitle text..."
-              />
-            </div>
+          <div className="flex-1">
+            <Textarea
+              value={activeSegment?.value}
+              className="resize-none"
+              onChange={() => {}}
+              placeholder="Edit subtitle text..."
+            />
           </div>
         </div>
       </div>

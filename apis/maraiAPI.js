@@ -4,11 +4,11 @@ class MaraiAPI {
   constructor(config = {}) {
     // Default configuration
     this.config = {
-      // baseUrl: 'http://localhost:9605',
-      baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
+      baseUrl: 'http://localhost:9605',
+      // baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
       secureUrl: 'https://marai.cloudflare-avatar-id-1.site',
-      // ollamaHost: 'http://127.0.0.1:11434',
-      ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
+      ollamaHost: 'http://127.0.0.1:11434',
+      // ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
       timeout: 3600000,
       defaultHeaders: {
         'Content-Type': 'application/json',
@@ -159,6 +159,10 @@ class MaraiAPI {
 
   async getDubbingInfo(headers = {}, params = {}) {
     return this.get(`/marai/api/tasks/${params.slug}/dubbing_info`, headers, params);
+  }
+
+  async getSubtitleInfo(headers = {}, params = {}) {
+    return this.get(`/marai/api/tasks/${params.slug}/subtitle_info`, headers, params);
   }
 
   async getTranscriptInfo(headers = {}, params = {}) {
