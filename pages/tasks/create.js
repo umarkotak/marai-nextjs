@@ -23,7 +23,6 @@ import { toast } from "react-toastify"
 import maraiAPI from "@/apis/maraiAPI"
 
 const defaultCreateParams = {
-  task_type: "auto_dubbing",
   video_input: "youtube_video_url",
   task_name: "",
   youtube_video_url: "",
@@ -53,16 +52,13 @@ export default function TaskCreate() {
           <div className="flex gap-2">
             <Button size="sm" variant={taskType === "transcripting" ? "" : "outline"} onClick={() => setTaskType("transcripting")}>Transcripting</Button>
             <Button size="sm" variant={taskType === "dubbing" ? "" : "outline"} onClick={() => setTaskType("dubbing")}>Dubbing</Button>
+            <Button size="sm" variant={taskType === "subtitle" ? "" : "outline"} onClick={() => setTaskType("subtitle")}>Subtitle</Button>
           </div>
         </Card>
 
-        {taskType === "transcripting" &&
-          <FormTranscripting />
-        }
-
-        {taskType === "dubbing" &&
-          <FormDubbing />
-        }
+        {taskType === "transcripting" && <FormTranscripting />}
+        {taskType === "dubbing" && <FormDubbing />}
+        {taskType === "subtitle" && <FormSubtitle />}
       </div>
     </div>
   )
@@ -536,12 +532,15 @@ function FormDubbing() {
         ? <>
           <div className="col-span-4">
             <Label>Voice Name</Label>
-            <Input
-              type="text"
-              onChange={(e) => {handleChange("voice_name", e.target.value)}}
-              value={createParams.voice_name}
-              readOnly
-            />
+            <Select onValueChange={(value) => {handleChange("voice_name", value)}} defaultValue={createParams.voice_name}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="id-ID-ArdiNeural">id-ID-ArdiNeural</SelectItem>
+                <SelectItem value="id-ID-GadisNeural">id-ID-GadisNeural</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="col-span-4">
             <Label>Voice Pitch</Label>
@@ -573,17 +572,15 @@ function FormDubbing() {
           <LanguageSelectList />
         </Select>
       </div>
-      {createParams.task_type.includes("dubbing") &&
-        <div className="col-span-4">
-          <Label>Target Language</Label>
-          <Select onValueChange={(value) => {handleChange("target_language", value)}} defaultValue={createParams.target_language}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <LanguageSelectList />
-          </Select>
-        </div>
-      }
+      <div className="col-span-4">
+        <Label>Target Language</Label>
+        <Select onValueChange={(value) => {handleChange("target_language", value)}} defaultValue={createParams.target_language}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <LanguageSelectList />
+        </Select>
+      </div>
       <div className="col-span-4">
         <Label>Number of Speakers</Label>
         <Input
@@ -592,6 +589,122 @@ function FormDubbing() {
           value={createParams.speaker_number}
           min="0"
         />
+      </div>
+      <div className="col-span-12 flex justify-end">
+        <Button size="sm" onClick={()=>handleSubmit()} disabled={isSubmitting}>{isSubmitting ? <LoadingSpinner /> : "Submit Task"}</Button>
+      </div>
+    </Card>
+  )
+}
+
+function FormSubtitle() {
+  const router = useRouter()
+  const [createParams, setCreateParams] = useState(defaultCreateParams)
+  const [videoFile, setVideoFile] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [inputMode, setInputMode] = useState("file")
+
+  function handleChange(name, value) {
+    setCreateParams({
+      ...createParams,
+      [name]: value,
+    })
+  }
+
+  function handleVideoFileChange(event) {
+    setVideoFile(event.target.files[0])
+  }
+
+  async function handleSubmit() {
+    setIsSubmitting(true)
+    const formData = new FormData()
+    formData.append("task_name", createParams.task_name)
+    formData.append("youtube_video_url", createParams.youtube_video_url)
+    formData.append("source_language", createParams.source_language)
+    formData.append("target_language", createParams.target_language)
+    formData.append("speaker_number", createParams.speaker_number)
+    formData.append("video_file", videoFile)
+
+    try {
+      const response = await maraiAPI.postCreateSubtitleTask({
+        "Content-Type": "multipart/form-data"
+      }, formData)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        toast.error(`Error: ${errorData.error.internal_error}`)
+        setIsSubmitting(false)
+        return
+      }
+
+    } catch (error) {
+      toast.error(`Error Catch: ${error}`)
+      setIsSubmitting(false)
+      return
+    }
+
+    toast.success("Create task success!")
+    setIsSubmitting(false)
+    router.push("/tasks")
+  }
+
+  return(
+    <Card className="p-4 grid grid-cols-12 gap-4">
+      <div className="col-span-12">
+        <Label>Task Name</Label>
+        <Input
+          type="text"
+          placeholder="nouman ali khan - akhirah"
+          onChange={(e) => {handleChange("task_name", e.target.value)}}
+          value={createParams.task_name}
+        />
+      </div>
+
+      <div className="col-span-12">
+        <Label>Input Mode</Label>
+        <div className="flex gap-2">
+          <Button size="sm" variant={inputMode === "file" ? "" : "outline"} onClick={() => setInputMode("file")}>File</Button>
+          <Button size="sm" variant={inputMode === "youtube_url" ? "" : "outline"} onClick={() => setInputMode("youtube_url")} disabled>Youtube URL</Button>
+        </div>
+      </div>
+
+      <div className={`col-span-12 ${inputMode === "file" ? "" : "hidden"}`}>
+        <Label>File <span className="text-[11px]">(format: mp4)</span></Label>
+        <Input
+          id="video_file"
+          type="file"
+          accept="video/mp4"
+          onChange={(e)=>handleVideoFileChange(e)}
+        />
+      </div>
+
+      <div className={`col-span-12 ${inputMode === "youtube_url" ? "" : "hidden"}`}>
+        <Label>Youtube Video URL</Label>
+        <Input
+          type="text"
+          placeholder="https://www.youtube.com/watch?v=5sVfTPaxRwk"
+          onChange={(e) => {handleChange("youtube_video_url", e.target.value)}}
+          value={createParams.youtube_video_url}
+        />
+      </div>
+
+      <div className="col-span-4">
+        <Label>Source Language</Label>
+        <Select onValueChange={(value) => {handleChange("source_language", value)}} defaultValue={createParams.source_language}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <LanguageSelectList />
+        </Select>
+      </div>
+      <div className="col-span-4">
+        <Label>Target Language</Label>
+        <Select onValueChange={(value) => {handleChange("target_language", value)}} defaultValue={createParams.target_language}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <LanguageSelectList />
+        </Select>
       </div>
       <div className="col-span-12 flex justify-end">
         <Button size="sm" onClick={()=>handleSubmit()} disabled={isSubmitting}>{isSubmitting ? <LoadingSpinner /> : "Submit Task"}</Button>
