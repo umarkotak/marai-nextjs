@@ -2,7 +2,7 @@ import maraiAPI from "@/apis/maraiAPI";
 import SubtitleTimeline from "@/components/SubtitleTimeline";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftIcon, ClapperboardIcon, DownloadIcon, MoreHorizontalIcon, Play, Save, SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon, ClapperboardIcon, DownloadIcon, MoreHorizontalIcon, Play, Save, SettingsIcon, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -31,6 +31,8 @@ export default function TaskSubtitle() {
   const { open } = useSidebar()
   const [activeLine, setActiveLine] = useState({})
   const [vttTimestamp, setVttTimestamp] = useState(null)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [previewTimestamp, setPreviewTimestamp] = useState(null)
 
   async function GetTaskDetail(slug) {
     try {
@@ -159,6 +161,16 @@ export default function TaskSubtitle() {
     }
   }
 
+  function handlePreviewRender() {
+    setPreviewTimestamp(Date.now())
+    setShowPreviewModal(true)
+  }
+
+  function handleClosePreviewModal() {
+    setShowPreviewModal(false)
+    setPreviewTimestamp(null)
+  }
+
   return (
     <div className="flex flex-row justify-start w-full overflow-auto">
       <div className="flex flex-col gap-2 w-full justify-between h-[calc(100vh-74px)]">
@@ -236,7 +248,9 @@ export default function TaskSubtitle() {
                 {renderLoading ? <LoadingSpinner /> : <ClapperboardIcon />} Render Subtitle
               </Button>
               {taskDetail?.publish_metadata?.rendered &&
-                <Button size="sm"><Play /> Preview Render</Button>
+                <Button size="sm" onClick={handlePreviewRender}>
+                  <Play /> Preview Render
+                </Button>
               }
               <UploadSheet slug={router.query.slug} />
             </div>
@@ -256,6 +270,35 @@ export default function TaskSubtitle() {
           />
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 max-w-4xl max-h-[90vh] w-full mx-4 relative">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Preview Rendered Video</h2>
+              <Button
+                size="icon_7"
+                variant="outline"
+                onClick={handleClosePreviewModal}
+              >
+                <X />
+              </Button>
+            </div>
+            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              <ReactPlayerClient
+                playerRef={finalPlayerRef}
+                url={`${taskDetail.final_video_url}?ts=${previewTimestamp}`}
+                playing={true}
+                muted={false}
+                controls={false}
+                width="100%"
+                height="100%"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
