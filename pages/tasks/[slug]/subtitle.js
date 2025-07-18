@@ -2,7 +2,7 @@ import maraiAPI from "@/apis/maraiAPI";
 import SubtitleTimeline from "@/components/SubtitleTimeline";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeftIcon, DownloadIcon, MoreHorizontalIcon, Play, Save, SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon, ClapperboardIcon, DownloadIcon, MoreHorizontalIcon, Play, Save, SettingsIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +10,8 @@ import { toast } from "react-toastify";
 import dynamic from 'next/dynamic';
 import { useSidebar } from "@/components/ui/sidebar";
 import Link from "next/link";
+import UploadSheet from "@/components/UploadSheet";
+import { LoadingSpinner } from "@/components/ui/icon";
 const ReactPlayerClient = dynamic(() => import('@/components/ReactPlayerClient'), { ssr: false });
 
 export default function TaskSubtitle() {
@@ -25,6 +27,7 @@ export default function TaskSubtitle() {
     duration_ms: 60000
   })
   const playerRef = useRef(null)
+  const finalPlayerRef = useRef(null)
   const { open } = useSidebar()
   const [activeLine, setActiveLine] = useState({})
   const [vttTimestamp, setVttTimestamp] = useState(null)
@@ -126,6 +129,36 @@ export default function TaskSubtitle() {
     }
   }
 
+  const [renderLoading, setRenderLoading] = useState(false);
+  async function renderSubtitle() {
+    if (!router.query.slug) { return }
+
+    try {
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      setRenderLoading(true)
+      const response = await maraiAPI.postRenderSubtitle({}, {
+        slug: router.query.slug,
+      })
+
+      const body = await response.json()
+      setRenderLoading(false)
+
+      if (response.status !== 200) {
+        toast.error(`Gagal render video dengan subtitle: ${JSON.stringify(body)}`)
+        return
+      }
+
+      toast.success("Video with subtitle rendered successfully")
+
+      GetTaskDetail(router.query.slug)
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+      setRenderLoading(false)
+    }
+  }
+
   return (
     <div className="flex flex-row justify-start w-full overflow-auto">
       <div className="flex flex-col gap-2 w-full justify-between h-[calc(100vh-74px)]">
@@ -172,7 +205,7 @@ export default function TaskSubtitle() {
             </div>
           </div>
 
-          <div className="col-span-5">
+          <div className="col-span-5 flex flex-col gap-2">
             <div key={`player-ts=${vttTimestamp}`} className={``}>
               <ReactPlayerClient
                 playerRef={playerRef}
@@ -194,6 +227,18 @@ export default function TaskSubtitle() {
                 }}
                 // controls={true}
               />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm" onClick={() => renderSubtitle()}
+                disabled={renderLoading}
+              >
+                {renderLoading ? <LoadingSpinner /> : <ClapperboardIcon />} Render Subtitle
+              </Button>
+              {taskDetail?.publish_metadata?.rendered &&
+                <Button size="sm"><Play /> Preview Render</Button>
+              }
+              <UploadSheet slug={router.query.slug} />
             </div>
           </div>
         </div>

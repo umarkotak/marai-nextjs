@@ -5,10 +5,10 @@ class MaraiAPI {
     // Default configuration
     this.config = {
       baseUrl: 'http://localhost:9605',
-      baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
+      // baseUrl: 'https://marai.cloudflare-avatar-id-1.site',
       secureUrl: 'https://marai.cloudflare-avatar-id-1.site',
       ollamaHost: 'http://127.0.0.1:11434',
-      ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
+      // ollamaHost: 'https://marllma.cloudflare-avatar-id-1.site',
       timeout: 3600000,
       defaultHeaders: {
         'Content-Type': 'application/json',
@@ -148,7 +148,23 @@ class MaraiAPI {
   }
 
   async getTaskList(headers = {}, params = {}) {
-    return this.get('/marai/api/tasks', headers, params);
+    return this.get(`/marai/api/tasks`, headers, params);
+  }
+
+  async getUploadAccounts(headers = {}, params = {}) {
+    return this.get(`/marai/api/upload_accounts`, headers, params);
+  }
+
+  async postUploadAccountYoutubeInit(headers = {}, params = {}) {
+    return this.post(`/marai/api/upload_accounts/youtube/init`, headers, params);
+  }
+
+  async postRenderSubtitle(headers = {}, params = {}) {
+    return this.post(`/marai/api/tasks/${params.slug}/render_subtitle`, headers, params);
+  }
+
+  async deleteUploadAccount(headers = {}, params = {}) {
+    return this.delete(`/marai/api/upload_accounts/${params.id}`, headers, params);
   }
 
   async getTaskDetail(headers = {}, params = {}) {
