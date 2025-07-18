@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "./ui/button";
 import { Avatar, AvatarImage } from "./ui/avatar";
+import Link from "next/link";
 
 export default function UploadSheet ({
   slug,
@@ -130,6 +131,33 @@ export default function UploadSheet ({
     }
   }
 
+  const [uploadLoading, setUploadLoading] = useState(false);
+  async function handleUpload(accountId) {
+    try {
+      if (maraiAPI.getAuthToken() === "") { return }
+
+      setUploadLoading(true)
+      const response = await maraiAPI.postTaskPublish({}, {
+        slug: slug,
+        upload_account_id: accountId,
+      })
+      setUploadLoading(false)
+
+      const body = await response.json()
+
+      if (response.status !== 200) {
+        toast.error(`Gagal mengupload video ke youtube: ${JSON.stringify(body)}`)
+        return
+      }
+
+      getTaskDetail(slug)
+
+    } catch(e) {
+      toast.error(`Error: ${e}`)
+      setUploadLoading(false)
+    }
+  }
+
   return(
     <Sheet className="w-full max-w-2xl">
       <SheetTrigger>
@@ -167,11 +195,24 @@ export default function UploadSheet ({
                   <div className="flex items-center justify-end gap-2">
                     <Button size="xs" onClick={() => deleteUploadAccount(account.id)}>delete</Button>
                     {account.is_expired && <Button size="xs" onClick={() => reLogin(account.target_type)}>re-login</Button>}
-                    <Button size="xs">upload</Button>
+                    <Button size="xs" onClick={() => {handleUpload(account.id)}} disabled={uploadLoading || account.is_expired}>
+                      {uploadLoading && <LoadingSpinner />} upload
+                    </Button>
                   </div>
                   {/* <span className="text-sm">{JSON.stringify(account)}</span> */}
                 </div>
               ))}
+            </div>
+            <div className="text-xl flex">
+              <span>Uploaded Link</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {taskDetail?.publish_metadata?.youtube_url && <div>
+                <div>Youtube:</div>
+                <div>
+                  <Link target="_blank" href={taskDetail?.publish_metadata?.youtube_url}>{taskDetail?.publish_metadata?.youtube_url}</Link>
+                </div>
+              </div>}
             </div>
           </div>
         </SheetDescription>
